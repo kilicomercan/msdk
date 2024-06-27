@@ -19,6 +19,7 @@ int __adxl363_reg_read(uint8_t reg_addr, uint8_t *read_buff, uint32_t size)
     int ret_val = 0;
     read_reg_pack[0] = ADXL363_CMD_READ;
     read_reg_pack[1] = reg_addr;
+    read_reg_pack[2] = 0;
 
     read_reg_req.txData = read_reg_pack;
     read_reg_req.txLen = size + 2;
@@ -210,17 +211,19 @@ int adxl363_init(adxl_363_spi_t spi_conf, adxl_363_controller_t adxl_conf)
     if (ret_val == E_NO_ERROR) {
         MXC_SPI_SetDataSize(spi, 8);
 
-        read_reg_req.txData = read_reg_pack;
-        read_reg_req.ssDeassert = 1;
-        read_fifo_req.ssIdx = spi_conf.spi_ssid;
         write_reg_req.txData = write_reg_pack;
         write_reg_req.ssDeassert = 1;
-        read_fifo_req.ssDeassert = 1;
-        read_fifo_req.spi = spi;
-        read_reg_req.spi = spi;
-        read_reg_req.ssIdx = read_fifo_req.ssIdx;
         write_reg_req.spi = spi;
         write_reg_req.ssIdx = read_fifo_req.ssIdx;
+
+        read_fifo_req.ssIdx = spi_conf.spi_ssid;
+        read_fifo_req.ssDeassert = 1;
+        read_fifo_req.spi = spi;
+
+        read_reg_req.spi = spi;
+        read_reg_req.txData = read_reg_pack;
+        read_reg_req.ssDeassert = 1;
+        read_reg_req.ssIdx = read_fifo_req.ssIdx;
 
         // Clear fifo TX transaction buffer.
         memset(adxl_363_fifo_tx_buff, 0, ADXL_363_FIFO_TX_BUFF_SIZE);
@@ -280,14 +283,13 @@ int adxl363_reg_read(adxl363_reg_t reg_addr, uint8_t *read_buff)
 
 int adxl363_reg_write(adxl363_reg_t reg_addr, uint8_t val)
 {
-    int ret_val = 0;
+    write_reg_pack[0] = ADXL363_CMD_WRITE;
+    write_reg_pack[1] = reg_addr;
+    write_reg_pack[2] = val;
 
     write_reg_req.txData = write_reg_pack;
     write_reg_req.txLen = 3;
-    write_reg_pack[1] = reg_addr;
-    write_reg_pack[2] = val;
-    ret_val = MXC_SPI_MasterTransaction(&write_reg_req);
-    return ret_val;
+    return MXC_SPI_MasterTransaction(&write_reg_req);
 }
 
 int adxl363_shutdown(void)

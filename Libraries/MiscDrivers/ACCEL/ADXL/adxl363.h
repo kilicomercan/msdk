@@ -16,8 +16,8 @@ typedef enum{
 /**
  * @brief Command identifiers
 */
-#define ADXL363_CMD_READ 0x0A
-#define ADXL363_CMD_WRITE 0x0B
+#define ADXL363_CMD_WRITE 0x0A
+#define ADXL363_CMD_READ 0x0B
 #define ADXL363_CMD_READ_FIFO 0x0D
 
 // Register definitions
