@@ -221,6 +221,7 @@ int adxl363_init(adxl_363_spi_t spi_conf, adxl_363_controller_t adxl_conf);
 CODE_TO_COMMENT_OUT(int adxl363_intmap_conf(uint8_t int_mask, uint8_t intpin_id);)
 
 int adxl363_reg_read(adxl363_reg_t reg_addr, uint8_t * read_buff);
+int adxl363_fifo_read_sample_set(uint8_t *buff, bool temp_data);
 int adxl363_reg_write(adxl363_reg_t reg_addr, uint8_t val);
 int adxl363_shutdown(void);
 
