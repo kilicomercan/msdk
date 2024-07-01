@@ -124,10 +124,10 @@ int adxl363_fifo_enable_mode(uint8_t mode)
 
     // If the mode is between [0,3]
     if ((mode & 0xFC) == 0) {
-        ret_val = adxl363_reg_read(ADXL_363_REG_POWER_CTL, &current_status);
-        if (ret_val == 0) {
+        ret_val = adxl363_reg_read(ADXL_363_REG_FIFO_CONTROL, &current_status);
+        if (ret_val == E_NO_ERROR) {
             current_status = current_status & 0xfc;
-            ret_val = adxl363_reg_write(ADXL_363_REG_POWER_CTL, current_status | mode);
+            ret_val = adxl363_reg_write(ADXL_363_REG_FIFO_CONTROL, current_status | mode);
         }
     } else {
         // If mode is not in valid range, return error.
@@ -295,13 +295,12 @@ int adxl363_fifo_read_sample_set(uint8_t *buff, bool temp_data)
     if (reg_data & (1 << 2)) {
         // Temperature data will be in sample set. So, read 4 bytes.
         ret_val = adxl363_fifo_read((uint8_t *)&sample, 4);
-
     } else {
         // Temperature data is not in sample set. So, read 3 bytes.
         ret_val = adxl363_fifo_read((uint8_t *)&sample, 3);
     }
 
-    if (0 < ret_val) {
+    if (E_NO_ERROR == ret_val) {
         if (temp_data) {
             memcpy(buff, &sample, 8);
         } else {
