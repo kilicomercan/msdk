@@ -168,6 +168,23 @@ typedef enum{
 
 typedef uint8_t adxl363_reg_t;
 
+typedef enum{
+    type_x,
+    type_y,
+    type_z,
+    type_temp
+}packet_type_t;
+
+typedef struct{
+    uint32_t sec;
+    uint32_t subsec;
+    int16_t x_val;
+    int16_t y_val;
+    int16_t z_val;
+    int16_t temp_val;
+}adxl363_sample_pkg_t;
+
+adxl363_sample_pkg_t adxl363_parse_sample_set(uint16_t *data);
 typedef enum adxl_odr_t{
     ADXL_363_ODR_12_5=0,
     ADXL_363_ODR_25=1,
@@ -224,6 +241,7 @@ int adxl363_reg_read(adxl363_reg_t reg_addr, uint8_t * read_buff);
 int adxl363_fifo_read_sample_set(uint8_t *buff, bool temp_data);
 int adxl363_reg_write(adxl363_reg_t reg_addr, uint8_t val);
 int adxl363_shutdown(void);
+adxl363_sample_pkg_t adxl363_parse_sample_set(uint16_t *data);
 
 
 #endif

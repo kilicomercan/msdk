@@ -319,3 +319,42 @@ int adxl363_shutdown(void)
     __reset_variables();
     return ret_val;
 }
+
+/**
+ * @brief This function parses the 16-bits data coming from
+ * accelerometer fifo.
+ */
+int16_t sign_extension;
+int16_t type;
+int16_t scalar_val;
+adxl363_sample_pkg_t adxl363_parse_sample_set(uint16_t *data){
+    int i = 0;
+    adxl363_sample_pkg_t pkg = {0};
+
+    for(; i <= 2; i++){
+        sign_extension = (data[i] >> 12) & 0b11;
+        type = (data[i] >> 14) & 0b11;
+        scalar_val = (data[i] & 0xfff);
+        if(sign_extension & 0b10 ){
+            scalar_val |= 0xf000;
+        }
+        switch (type){
+            case type_x:
+                pkg.x_val = scalar_val;
+                break;
+            case type_y:
+                pkg.y_val = scalar_val;
+                break;
+            case type_z:
+                pkg.z_val = scalar_val;
+                break;
+            case type_temp:
+                pkg.temp_val = scalar_val;
+                break;
+            default:
+                printf("Parsing error\r\n");
+                break;
+        }
+    }
+    return pkg;
+}
