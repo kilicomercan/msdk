@@ -1,6 +1,10 @@
 #ifndef _ADXL363_H
 #define _ADXL363_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "stdint.h"
 #include "stdlib.h"
 #include "stdio.h"
@@ -243,5 +247,8 @@ int adxl363_reg_write(adxl363_reg_t reg_addr, uint8_t val);
 int adxl363_shutdown(void);
 adxl363_sample_pkg_t adxl363_parse_sample_set(uint16_t *data);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif
