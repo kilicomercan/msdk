@@ -74,6 +74,12 @@
     ],
     "C_Cpp.default.forcedInclude": [
         "${workspaceFolder}/build/project_defines.h"
-    ]
+    ],
+    "files.associations": {
+        "string.h": "c",
+        "mxc.h": "c",
+        "board.h": "c",
+        "adafruit_3315_tft.h": "c"
+    }
 }
 

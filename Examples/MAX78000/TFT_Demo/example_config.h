@@ -26,6 +26,10 @@
 // Enable TFT display
 #define ENABLE_TFT
 
+#ifdef TFT_ADAFRUIT
+#define VERSION_ADAFRUIT_TFT 2
+#endif
+
 // Board specific options...
 // ---
 #ifdef BOARD_EVKIT_V1
@@ -35,8 +39,19 @@
 #endif
 
 #ifdef BOARD_FTHR_REVA
-#include "tft_ili9341.h"
-#endif
+#define TFT_ADAFRUIT
+
+#ifdef TFT_ADAFRUIT
+#include "adafruit_3315_tft.h"
+
+#if VERSION_ADAFRUIT_TFT==2
+#include "tsc2007.h"
+#else
+#include "adafruit_3315_touch.h"
+#endif // VERSION_ADAFRUIT_TFT
+#endif // TFT_ADAFRUIT
+#endif // BOARD_FTHR_REVA
 // ---
+
 
 #endif // EXAMPLES_MAX78000_TFT_DEMO_EXAMPLE_CONFIG_H_

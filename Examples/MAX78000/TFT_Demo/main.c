@@ -130,7 +130,7 @@ int main(void)
 #ifdef BOARD_FTHR_REVA
 #ifdef ENABLE_TFT
     /* Initialize TFT display */
-    MXC_TFT_Init(MXC_SPI0, 1, NULL, NULL);
+    MXC_TFT_Init(MXC_SPI0, 0, NULL, NULL);
     TFT_Feather_test();
 #endif
 #endif // #ifdef BOARD_FTHR_REVA

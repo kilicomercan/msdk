@@ -29,8 +29,8 @@
 #include <stdio.h>
 #include <spi_regs.h>
 #include <gpio_regs.h>
-#include "tft_ili9341.h"
-#include "tsc2046.h"
+
+
 #include "led.h"
 #include "pb.h"
 

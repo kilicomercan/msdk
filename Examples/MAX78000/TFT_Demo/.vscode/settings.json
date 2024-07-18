@@ -82,6 +82,23 @@
     ],
     "C_Cpp.default.forcedInclude": [
         "${workspaceFolder}/build/project_defines.h"
-    ]
+    ],
+    "files.associations": {
+        "board.h": "c",
+        "spi_regs.h": "c",
+        "adafruit_3315_touch.h": "c",
+        "adafruit_3315_tft.h": "c",
+        "example_config.h": "c",
+        "icc.h": "c",
+        "mxc_device.h": "c",
+        "mxc_delay.h": "c",
+        "mxc.h": "c",
+        "tft_ili9341.h": "c",
+        "tsc2046.h": "c",
+        "state.h": "c",
+        "tsc2007.h": "c",
+        "tft_ssd2119.h": "c",
+        "bitmap.h": "c"
+    }
 }
 

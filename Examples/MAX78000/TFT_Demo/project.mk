@@ -13,7 +13,21 @@
 
 # Add your config here!
 # Uncomment the line below to build for the MAX78000FTHR
-#BOARD=FTHR_RevA
+# override BOARD=FTHR_RevA
+
+ifeq "$(BOARD)" "FTHR_RevA"
+# Determine ADAFRUIT 2.4'' Display version
+ADAFRUIT_DISPLAY_VER = 2
+SRCS+=adafruit_3315_tft.c
+
+ifeq ($(ADAFRUIT_DISPLAY_VER),2)
+SRCS+=tsc2007.c
+endif
+
+ifeq ($(ADAFRUIT_DISPLAY_VER),1)
+SRCS+=adafruit_3315_touch.c
+endif
+endif # BOARD == FTHR_RevA
 
 IPATH += resources
 

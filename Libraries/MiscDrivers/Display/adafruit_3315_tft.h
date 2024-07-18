@@ -52,6 +52,8 @@ extern "C" {
 
 #define TFT_DC_PORT MXC_GPIO0 /**< GPIO port for Data/Command signal. */
 #define TFT_DC_PIN MXC_GPIO_PIN_8 /**< GPIO pin for Data/Command signal. */
+#define TFT_SS_PORT MXC_GPIO0 /**< GPIO port for select signal. */
+#define TFT_SS_PIN MXC_GPIO_PIN_11 /**< GPIO pin for select signal. */
 #endif
 
 #if (TARGET_NUM == 78002)
