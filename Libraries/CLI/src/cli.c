@@ -48,12 +48,16 @@
 #define BUFF_SIZE 1
 
 // Macro to call MXC_UART_Init function with appropriate parameters
-#if (TARGET_NUM == 32520 || TARGET_NUM == 32570 || TARGET_NUM == 32650)
+#if ((TARGET_NUM == 32666 || TARGET_NUM==32665) && BOARD==FTHR)
+#define UART_INIT(uart) MXC_UART_Init(uart, UART_BAUD, MAP_B)
+#elif (TARGET_NUM == 32520 || TARGET_NUM == 32570 || TARGET_NUM == 32650)
 #define UART_INIT(uart) MXC_UART_Init(uart, UART_BAUD)
 #elif TARGET_NUM == 32660
 #define UART_INIT(uart) MXC_UART_Init(uart, UART_BAUD, MAP_A)
 #elif TARGET_NUM == 32662
 #define UART_INIT(uart) MXC_UART_Init(uart, UART_BAUD, MXC_UART_APB_CLK, MAP_A)
+#elif TARGET_NUM==32665 || TARGET_NUM==32666
+#define UART_INIT(uart) MXC_UART_Init(uart, UART_BAUD, MAP_A)
 #else
 #define UART_INIT(uart) MXC_UART_Init(uart, UART_BAUD, MXC_UART_APB_CLK)
 #endif
@@ -143,7 +147,7 @@ void line_accumulator(uint8_t user_char)
     if (cli_uart == NULL) {
         return;
     }
-
+    // printf("Accumulator called\n");
     switch (user_char) {
     case BACKSPACE:
         // Handle Backspace and Delete
@@ -325,7 +329,6 @@ int MXC_CLI_Init(mxc_uart_regs_t *uart, const command_t *commands, unsigned int 
     printf("CLI Initialized! Enter 'help' to see a list of available commands.\n");
     User_Prompt_Sequence();
     while (MXC_UART_GetActive(uart)) {}
-
 #ifdef USE_CLI_LIB_IRQHANDLER
     // Give users the option to define their own IRQ handler in their application. By default,
     // we point the interrupt vector at MXC_CLI_Handler.
