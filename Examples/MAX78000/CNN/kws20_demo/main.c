@@ -49,7 +49,10 @@
 #endif
 #include "cnn.h"
 #ifdef BOARD_FTHR_REVA
-#include "tft_ili9341.h"
+// #include "tft_ili9341.h"
+
+#include "adafruit_3315_tft.h"
+#include "adafruit_3315_touch.h"
 #ifdef ENABLE_CODEC_MIC
 #include "i2c.h"
 #include "max9867.h"
@@ -450,7 +453,7 @@ int main(void)
 #endif
 #ifdef BOARD_FTHR_REVA
     /* Initialize TFT display */
-    MXC_TFT_Init(MXC_SPI0, 1, NULL, NULL);
+    MXC_TFT_Init(MXC_SPI0, 0, NULL, NULL);
     MXC_TFT_SetRotation(ROTATE_90);
     MXC_TFT_ShowImage(0, 0, image_bitmap);
     MXC_Delay(1000000);

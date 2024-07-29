@@ -15,8 +15,9 @@
     },
     
     "target":"MAX78000",
-    "board":"EvKit_V1",
-
+    // "board":"EvKit_V1",
+    "board":"FTHR_RevA",
+    
     "project_name":"${workspaceFolderBasename}",
 
     "program_file":"${config:project_name}.elf",
@@ -79,6 +80,9 @@
     ],
     "C_Cpp.default.forcedInclude": [
         "${workspaceFolder}/build/project_defines.h"
-    ]
+    ],
+    "files.associations": {
+        "cnn.h": "c"
+    }
 }
 

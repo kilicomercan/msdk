@@ -12,7 +12,9 @@
 # **********************************************************
 
 # Uncomment the line below to build for the MAX78000FTHR
-#BOARD=FTHR_RevA
+BOARD=FTHR_RevA
+SRCS+=adafruit_3315_tft.c
+SRCS+=adafruit_3315_touch.c
 
 # Set a higher optimization level.  The increased performance
 # is required for the CameraIF DMA code to work within the
@@ -32,7 +34,7 @@ endif
 # Place build files specific to FTHR_RevA here.
 ifeq "$(BOARD)" "FTHR_RevA"
 # Only Enable if 2.4" TFT is connected to Feather
-#PROJ_CFLAGS+=-DTFT_ENABLE
+PROJ_CFLAGS+=-DTFT_ENABLE
 
 # If enabled, it saves out the Mic samples used for inference to SDCARD
 # Note that if both SDCARD and TFT are enabled, the TFT will be disabled to avoid SPI driver conflict.
@@ -54,5 +56,3 @@ endif
 ifeq ($(BOARD),CAM02_RevA)
 $(error ERR_NOTSUPPORTED: This project is not supported for the CAM02 board)
 endif
-
-
