@@ -213,7 +213,11 @@ typedef struct adxl_363_spi_t{
     uint8_t spi_id;
     uint8_t spi_ssid;
     uint32_t spi_speed;
+    #if TARGET == MAX32655
     mxc_spi_pins_t spi_pins;
+    #else
+    sys_map_t spi_pins;
+    #endif
 }adxl_363_spi_t;
 
 typedef enum adxl_axis_t {

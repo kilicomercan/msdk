@@ -1,88 +1,253 @@
-/******************************************************************************
+/*************************************************************************************************/
+/*!
+ * @file    main.c
+ * @brief   Maxim custom Bluetooth profile and service that advertises as "MCS" and accepts
+ *          connection requests.
  *
- * Copyright (C) 2022-2023 Maxim Integrated Products, Inc. (now owned by 
- * Analog Devices, Inc.),
- * Copyright (C) 2023-2024 Analog Devices, Inc.
+ *  Copyright (c) 2013-2019 Arm Ltd. All Rights Reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ *  Copyright (c) 2019 Packetcraft, Inc.
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Portions Copyright (c) 2022-2023 Analog Devices, Inc.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- ******************************************************************************/
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+/*************************************************************************************************/
+
+#include <string.h>
+#include "wsf_types.h"
+#include "wsf_trace.h"
+#include "wsf_bufio.h"
+#include "wsf_msg.h"
+#include "wsf_assert.h"
+#include "wsf_buf.h"
+#include "wsf_heap.h"
+#include "wsf_cs.h"
+#include "wsf_timer.h"
+#include "wsf_os.h"
+
+#include "sec_api.h"
+#include "hci_handler.h"
+#include "dm_handler.h"
+#include "l2c_handler.h"
+#include "att_handler.h"
+#include "smp_handler.h"
+#include "l2c_api.h"
+#include "att_api.h"
+#include "smp_api.h"
+#include "app_api.h"
+#include "hci_core.h"
+#include "app_terminal.h"
+#include "wut.h"
+
+#if defined(HCI_TR_EXACTLE) && (HCI_TR_EXACTLE == 1)
+#include "ll_init_api.h"
+#endif
+
+#include "pal_bb.h"
+#include "pal_cfg.h"
+#include "pal_timer.h"
+#include "pal_sys.h"
+
+#include "mcs_app_api.h"
+#include "app_ui.h"
+
+/**************************************************************************************************
+  Macros
+**************************************************************************************************/
+
+/*! \brief UART TX buffer size */
+#define PLATFORM_UART_TERMINAL_BUFFER_SIZE 2048U
+#define DEFAULT_TX_POWER 0 /* dBm */
+
+/**************************************************************************************************
+  Global Variables
+**************************************************************************************************/
+
+/*! \brief  Pool runtime configuration. */
+static wsfBufPoolDesc_t mainPoolDesc[] = { { 16, 8 }, { 32, 4 }, { 192, 8 }, { 256, 8 } };
+
+#if defined(HCI_TR_EXACTLE) && (HCI_TR_EXACTLE == 1)
+static LlRtCfg_t mainLlRtCfg;
+#endif
+
+/**************************************************************************************************
+  Functions\
+**************************************************************************************************/
+
+/*! \brief  Stack initialization for app. */
+extern void StackInitMcsApp(void);
+
+/*************************************************************************************************/
+/*!
+ *  \brief  Initialize WSF.
+ *
+ *  \return None.
+ */
+/*************************************************************************************************/
+static void mainWsfInit(void)
+{
+#if defined(HCI_TR_EXACTLE) && (HCI_TR_EXACTLE == 1)
+    /* +12 for message headroom, + 2 event header, +255 maximum parameter length. */
+    const uint16_t maxRptBufSize = 12 + 2 + 255;
+
+    /* +12 for message headroom, +4 for header. */
+    const uint16_t aclBufSize = 12 + mainLlRtCfg.maxAclLen + 4 + BB_DATA_PDU_TAILROOM;
+
+    /* Adjust buffer allocation based on platform configuration. */
+    mainPoolDesc[2].len = maxRptBufSize;
+    mainPoolDesc[2].num = mainLlRtCfg.maxAdvReports;
+    mainPoolDesc[3].len = aclBufSize;
+    mainPoolDesc[3].num = mainLlRtCfg.numTxBufs + mainLlRtCfg.numRxBufs;
+#endif
+
+    const uint8_t numPools = sizeof(mainPoolDesc) / sizeof(mainPoolDesc[0]);
+
+    uint16_t memUsed;
+    WsfCsEnter();
+    memUsed = WsfBufInit(numPools, mainPoolDesc);
+    WsfHeapAlloc(memUsed);
+    WsfCsExit();
+
+    WsfOsInit();
+    WsfTimerInit();
+#if (WSF_TOKEN_ENABLED == TRUE) || (WSF_TRACE_ENABLED == TRUE)
+    WsfTraceRegisterHandler(WsfBufIoWrite);
+    WsfTraceEnable(TRUE);
+#endif
+}
+
+/*************************************************************************************************/
+/*!
+*  \fn     setAdvTxPower
+*
+*  \brief  Set the default advertising TX power.
+*
+*  \return None.
+*/
+/*************************************************************************************************/
+void setAdvTxPower(void)
+{
+    LlSetAdvTxPower(DEFAULT_TX_POWER);
+}
+
+/*************************************************************************************************/
+/*!
+*  \fn     WUT_IRQHandler
+*
+*  \brief  WUT interrupt handler.
+*
+*  \return None.
+*/
+/*************************************************************************************************/
+void WUT_IRQHandler(void)
+{
+    MXC_WUT_Handler();
+    PalTimerIRQCallBack();
+}
+
+/*************************************************************************************************/
+/*!
+*  \fn     main
+*
+*  \brief  Entry point for demo software.
+*
+*  \param  None.
+*
+*  \return None.
+*/
+/*************************************************************************************************/
 
 /**
- * @file    main.c
- * @brief   The main application for Core 0.
- * @details This example is similar to the "Hello_World" example but the console
- *          UART and LEDs are split between Core 0 and Core 1.
+ * Shared variable declerations
  */
-
-/***** Includes *****/
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include "mxc_device.h"
-#include "mxc_delay.h"
-#include "led.h"
-#include "board.h"
-#include "sema.h"
-#include "tmr.h"
-
-/***** Definitions *****/
 int count0 = 0;
 int count1 = 0;
 
-/***** Globals *****/
-
-/***** Functions *****/
-
-// *****************************************************************************
 int main(void)
 {
-    printf("\n\n\n***** MAX32665 Dual Core Example *****\n");
-    printf("Similar to the 'Hello World' example but split the\n");
-    printf("lights and console uart between core 0 and core 1.\n");
-    printf("Halting this example with a debugger will not stop core 1.\n\n");
+#if defined(HCI_TR_EXACTLE) && (HCI_TR_EXACTLE == 1)
+    /* Configurations must be persistent. */
+    static BbRtCfg_t mainBbRtCfg;
 
-    MXC_SEMA_Init();
+    PalBbLoadCfg((PalBbCfg_t *)&mainBbRtCfg);
+    LlGetDefaultRunTimeCfg(&mainLlRtCfg);
+#if (BT_VER >= LL_VER_BT_CORE_SPEC_5_0)
+    /* Set 5.0 requirements. */
+    mainLlRtCfg.btVer = LL_VER_BT_CORE_SPEC_5_0;
+#endif
+    PalCfgLoadData(PAL_CFG_ID_LL_PARAM, &mainLlRtCfg.maxAdvSets, sizeof(LlRtCfg_t) - 9);
+#if (BT_VER >= LL_VER_BT_CORE_SPEC_5_0)
+    PalCfgLoadData(PAL_CFG_ID_BLE_PHY, &mainLlRtCfg.phy2mSup, 4);
+#endif
 
-    MXC_SEMA_GetSema(0);
+    /* Set the 32k sleep clock accuracy into one of the following bins, default is 20
+      HCI_CLOCK_500PPM
+      HCI_CLOCK_250PPM
+      HCI_CLOCK_150PPM
+      HCI_CLOCK_100PPM
+      HCI_CLOCK_75PPM
+      HCI_CLOCK_50PPM
+      HCI_CLOCK_30PPM
+      HCI_CLOCK_20PPM
+    */
+    mainBbRtCfg.clkPpm = 20;
 
+    /* Set the default connection power level */
+    mainLlRtCfg.defTxPwrLvl = DEFAULT_TX_POWER;
+#endif
+
+    uint32_t memUsed;
+    WsfCsEnter();
+    memUsed = WsfBufIoUartInit(WsfHeapGetFreeStartAddress(), PLATFORM_UART_TERMINAL_BUFFER_SIZE);
+    WsfHeapAlloc(memUsed);
+    WsfCsExit();
+
+    mainWsfInit();
+    AppTerminalInit();
+
+#if defined(HCI_TR_EXACTLE) && (HCI_TR_EXACTLE == 1)
+    WsfCsEnter();
+    LlInitRtCfg_t llCfg = { .pBbRtCfg = &mainBbRtCfg,
+                            .wlSizeCfg = 4,
+                            .rlSizeCfg = 4,
+                            .plSizeCfg = 4,
+                            .pLlRtCfg = &mainLlRtCfg,
+                            .pFreeMem = WsfHeapGetFreeStartAddress(),
+                            .freeMemAvail = WsfHeapCountAvailable() };
+
+    memUsed = LlInit(&llCfg);
+    WsfHeapAlloc(memUsed);
+    WsfCsExit();
+
+    bdAddr_t bdAddr;
+    PalCfgLoadData(PAL_CFG_ID_BD_ADDR, bdAddr, sizeof(bdAddr_t));
+    LlSetBdAddr((uint8_t *)&bdAddr);
+#endif
+
+    StackInitMcsApp();
+    McsAppStart();
+
+    /**
+     * Initialization of Core1
+     */
     Start_Core1();
 
-    MXC_SEMA_FreeSema(1);
+    /**
+     * Initialization of the event handler loop for BLE.
+     */
+    WsfOsEnterMainLoop();
 
-    mxc_tmr_cfg_t tmr_cfg;
-    tmr_cfg.pres = MXC_TMR_PRES_1;
-    tmr_cfg.mode = MXC_TMR_MODE_CONTINUOUS;
-    tmr_cfg.cmp_cnt = PeripheralClock / 2;
-    tmr_cfg.pol = 0;
-    MXC_TMR_Init(MXC_TMR2, &tmr_cfg);
-
-    MXC_TMR_Start(MXC_TMR2);
-
-    while (1) {
-        // Wait for Core 1 to update count and release the semaphore
-        while (MXC_SEMA_CheckSema(0) == E_BUSY) {}
-        MXC_SEMA_GetSema(0);
-
-        printf("Core 0: Pong: %d\n", count0);
-
-        LED_On(0);
-        LED_Off(1);
-
-        MXC_TMR_Delay(MXC_TMR2, MXC_DELAY_MSEC(500));
-
-        // Update the count for Core 1 and release the semaphore
-        count1++;
-        MXC_SEMA_FreeSema(1);
-    }
+    /* Does not return. */
+    return 0;
 }
