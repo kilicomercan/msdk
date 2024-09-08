@@ -33,6 +33,8 @@
 #include "board.h"
 #include "sema.h"
 #include "tmr.h"
+#include "adxl363_test.h"
+#include "sensor_fw.h"
 
 /***** Definitions *****/
 extern int count0;
@@ -46,21 +48,23 @@ extern int count1;
 // main_core1 is Core 1's official main function that is called at program startup.
 int main_core1(void)
 {
+    int ret = 0;
+
+
     printf("Core 1: enter while loop.\n");
     while (1) {
         // Wait for Core 0 to release the semaphore
         while (MXC_SEMA_GetSema(1) == E_BUSY) {}
 
         // Print the updated value from Core 0
-        printf("Core 1: Ping: %d\n", count1);
-
-        LED_Off(0);
-        LED_On(1);
+        ret = test_adxl363_read_reg(ADXL_363_REG_DEVID, 0xF3);
+        ret = test_adxl363_read_reg(ADXL_363_REG_DEVID_AD, 0xAD);
+        LED_Toggle(0);
+        LED_Toggle(1);
 
         MXC_TMR_Delay(MXC_TMR1, MXC_DELAY_MSEC(500));
-
         // Update the count for Core 0 and release the semaphore
-        count0++;
+        count1++;
         MXC_SEMA_FreeSema(0);
     }
 }

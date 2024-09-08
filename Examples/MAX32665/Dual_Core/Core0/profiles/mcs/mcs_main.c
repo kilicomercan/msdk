@@ -1,0 +1,323 @@
+/*************************************************************************************************/
+/*!
+ *  \file
+ *
+ *  \brief  Maxim Custom service server.
+ *
+ *  Copyright (c) 2012-2019 Arm Ltd. All Rights Reserved.
+ *
+ *  Copyright (c) 2022-2023 Analog Devices, Inc.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+/*************************************************************************************************/
+
+#include <stdbool.h>
+#include "mcs_api.h"
+#include "app_ui.h"
+#include "pal_led.h"
+
+/**************************************************************************************************
+  Macros
+**************************************************************************************************/
+#define DEAULT_TIMER_PERIOD 500
+/**************************************************************************************************
+  Local Variables
+**************************************************************************************************/
+
+/*! \brief Connection control block */
+typedef struct
+{
+    dmConnId_t connId;       /*! \brief Connection ID */
+    bool_t mcsToSend;        /*! \brief mcs measurement ready to be sent on this channel */
+    uint8_t sentMcsBtnState; /*! \brief value of last sent mcs button state */
+} mcsConn_t;
+
+/*! \brief Control block */
+static struct
+{
+    mcsConn_t conn[DM_CONN_MAX]; /*! \brief connection control block */
+    wsfTimer_t I2CTimer;         /*! \brief I2C periodic check timer */
+    wsfTimer_t SPITimer;         /*! \brief SPI periodic check timer */
+    mcsCfg_t cfg;                /*! \brief configurable parameters */
+    uint16_t currCount;          /*! \brief current measurement period count */
+    bool_t txReady;              /*! \brief TRUE if ready to send notifications */
+    uint8_t btnState;            /*! \brief value of last button state */
+    uint16_t I2CPeriod;
+    uint16_t SPIPeriod;
+} mcsCb = {.I2CPeriod = DEAULT_TIMER_PERIOD,
+           .SPIPeriod = DEAULT_TIMER_PERIOD};
+
+/*************************************************************************************************/
+/*!
+ *  \brief  Return TRUE if no connections with active measurements.
+ *
+ *  \return TRUE if no connections active.
+ */
+/*************************************************************************************************/
+static bool_t mcsNoConnActive(void)
+{
+    mcsConn_t *pConn = mcsCb.conn;
+    uint8_t i;
+
+    for (i = 0; i < DM_CONN_MAX; i++, pConn++)
+    {
+        if (pConn->connId != DM_CONN_ID_NONE)
+        {
+            return FALSE;
+        }
+    }
+    return TRUE;
+}
+
+/*************************************************************************************************/
+/*!
+ *  \brief  ATTS write callback for maxim custom service.  Use this function as a parameter
+ *          to SvcMcsCbackRegister().
+ *
+ *  \return ATT status.
+ */
+/*************************************************************************************************/
+uint8_t McsWriteCback(dmConnId_t connId, uint16_t handle, uint8_t operation, uint16_t offset,
+                      uint16_t len, uint8_t *pValue, attsAttr_t *pAttr)
+{
+    AttsSetAttr(handle, sizeof(*pValue), (uint8_t *)pValue);
+    uint16_t period = 0;
+
+    /* Get LED ID */
+    switch (handle)
+    {
+    case CUSTOM_I2C_PERIOD_HDL:
+        // Change I2C period = 0;
+        BYTES_BE_TO_UINT16(period, pValue);
+        mcsCb.I2CPeriod = period;
+        break;
+    case CUSTOM_SPI_PERIOD_HDL:
+        // Change SPI period
+        BYTES_BE_TO_UINT16(period, pValue);
+        mcsCb.SPIPeriod = period;
+        break;
+    }
+
+    return ATT_SUCCESS;
+}
+
+/*************************************************************************************************/
+
+/*!
+ *  \brief  Setting characteristic value and send the button value to the peer device
+ *
+ *  \return None.
+ */
+/*************************************************************************************************/
+void McsSetFeatures(uint8_t features)
+{
+    AttsSetAttr(CUSTOM_I2C_HDL, sizeof(features),
+                (uint8_t *)&features); /*Setting mcsButtonVal characteristic value */
+    AttsSetAttr(CUSTOM_SPI_HDL, sizeof(features),
+                (uint8_t *)&features); /*Setting mcsButtonVal characteristic value */
+
+    dmConnId_t connId = AppConnIsOpen(); /*Getting connected */
+    if (connId != DM_CONN_ID_NONE)
+    {
+        AttsHandleValueNtf(connId, CUSTOM_I2C_HDL, sizeof(features),
+                           (uint8_t *)&features); /*Send notify */
+        AttsHandleValueNtf(connId, CUSTOM_SPI_HDL, sizeof(features),
+                           (uint8_t *)&features); /*Send notify */
+    }
+}
+
+/*************************************************************************************************/
+/*!
+ *  \brief  Initialize the mcs server.
+ *
+ *  \param  handerId    WSF handler ID of the application using this service.
+ *  \param  pCfg        mcs configurable parameters.
+ *
+ *  \return None.
+ */
+/*************************************************************************************************/
+void McsInit(wsfHandlerId_t handlerId, mcsCfg_t *pCfg)
+{
+    mcsCb.I2CTimer.handlerId = handlerId;
+    mcsCb.SPITimer.handlerId = handlerId;
+    mcsCb.cfg = *pCfg;
+
+    /* De-init the PAL LEDs so we can control them here */
+    PalLedDeInit();
+}
+
+/*************************************************************************************************/
+/*!
+ *  \brief  Start periodic mcs button state check.  This function starts a timer to perform
+ *          periodic button checks.
+ *
+ *  \param  connId      DM connection identifier.
+ *  \param  timerEvt    WSF event designated by the application for the timer.
+ *  \param  mcsCccIdx   Index of mcs button state CCC descriptor in CCC descriptor handle table.
+ *
+ *  \return None.
+ */
+/*************************************************************************************************/
+void McsI2CCheckStart(dmConnId_t connId, uint8_t timerEvt, uint8_t mcsCccIdx)
+{
+    /* initialize control block */
+    mcsCb.I2CTimer.msg.event = timerEvt;
+    mcsCb.I2CTimer.msg.status = mcsCccIdx;
+    mcsCb.currCount = mcsCb.cfg.count;
+
+    /* start timer */
+    WsfTimerStartMs(&mcsCb.I2CTimer, 500);
+
+    /* set conn id and last sent button level */
+    mcsCb.conn[connId - 1].connId = connId;
+}
+
+/*************************************************************************************************/
+/*!
+ *  \brief  Start periodic mcs button state check.  This function starts a timer to perform
+ *          periodic button checks.
+ *
+ *  \param  connId      DM connection identifier.
+ *  \param  timerEvt    WSF event designated by the application for the timer.
+ *  \param  mcsCccIdx   Index of mcs button state CCC descriptor in CCC descriptor handle table.
+ *
+ *  \return None.
+ */
+/*************************************************************************************************/
+void McsSPICheckStart(dmConnId_t connId, uint8_t timerEvt, uint8_t mcsCccIdx)
+{
+    /* initialize control block */
+    mcsCb.SPITimer.msg.event = timerEvt;
+    mcsCb.SPITimer.msg.status = mcsCccIdx;
+
+    /* start timer */
+    WsfTimerStartMs(&mcsCb.SPITimer, 500);
+
+    /* set conn id and last sent button level */
+    mcsCb.conn[connId - 1].connId = connId;
+}
+
+/*************************************************************************************************/
+/*!
+ *  \brief  Stop periodic button state check.
+ *
+ *  \param  connId      DM connection identifier.
+ *
+ *  \return None.
+ */
+/*************************************************************************************************/
+void McsI2CCheckStop(dmConnId_t connId)
+{
+    /* stop timer */
+    WsfTimerStop(&mcsCb.I2CTimer);
+    /* if no remaining connections */
+    if (mcsNoConnActive())
+    {
+        /* clear connection */
+        mcsCb.conn[connId - 1].connId = DM_CONN_ID_NONE;
+        mcsCb.conn[connId - 1].mcsToSend = FALSE;
+    }
+}
+
+/*************************************************************************************************/
+/*!
+ *  \brief  Stop periodic button state check.
+ *
+ *  \param  connId      DM connection identifier.
+ *
+ *  \return None.
+ */
+/*************************************************************************************************/
+void McsSPICheckStop(dmConnId_t connId)
+{
+    /* stop timer */
+    WsfTimerStop(&mcsCb.SPITimer);
+
+    /* if no remaining connections */
+    if (mcsNoConnActive())
+    {
+        /* clear connection */
+        mcsCb.conn[connId - 1].connId = DM_CONN_ID_NONE;
+        mcsCb.conn[connId - 1].mcsToSend = FALSE;
+    }
+}
+
+/*************************************************************************************************/
+/*!
+ *  \brief  Find next connection with measurement to send.
+ *
+ *  \param  cccIdx  measurement CCC descriptor index.
+ *
+ *  \return Connection control block.
+ */
+/*************************************************************************************************/
+static mcsConn_t *cgmpsFindNextToSend(uint8_t cccIdx)
+{
+    mcsConn_t *pConn = mcsCb.conn;
+    uint8_t i;
+
+    for (i = 0; i < DM_CONN_MAX; i++, pConn++)
+    {
+        if (pConn->connId != DM_CONN_ID_NONE)
+        {
+            if (AttsCccEnabled(pConn->connId, cccIdx))
+            {
+                return pConn;
+            }
+        }
+    }
+    return NULL;
+}
+
+void McsI2CTimerExpired(wsfMsgHdr_t *pMsg)
+{
+    mcsConn_t *pConn;
+    static uint8_t val = 0x00;
+    /* if there are active connections */
+    if (mcsNoConnActive() == FALSE)
+    {
+        /* find next connection to send (note ccc idx is stored in timer status) */
+        if ((pConn = cgmpsFindNextToSend(pMsg->status)) != NULL)
+        {
+            val++;
+            AttsHandleValueNtf(pConn->connId, CUSTOM_I2C_HDL, 1, &val);
+            mcsCb.txReady = FALSE;
+            pConn->mcsToSend = FALSE;
+        }
+
+        /* restart timer */
+        WsfTimerStartMs(&mcsCb.I2CTimer, mcsCb.I2CPeriod);
+    }
+}
+
+void McsSPITimerExpired(wsfMsgHdr_t *pMsg)
+{
+    mcsConn_t *pConn;
+    static uint8_t val = 0x00;
+    /* if there are active connections */
+    if (mcsNoConnActive() == FALSE)
+    {
+        /* find next connection to send (note ccc idx is stored in timer status) */
+        if ((pConn = cgmpsFindNextToSend(pMsg->status)) != NULL)
+        {
+            val++;
+            AttsHandleValueNtf(pConn->connId, CUSTOM_SPI_HDL, 1, &val);
+            mcsCb.txReady = FALSE;
+            pConn->mcsToSend = FALSE;
+        }
+
+        /* restart timer */
+        WsfTimerStartMs(&mcsCb.SPITimer, mcsCb.SPIPeriod);
+    }
+}

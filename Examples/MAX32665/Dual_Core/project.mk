@@ -26,6 +26,46 @@
 
 # Add your config here!
 
+SENSOR_DRIVER_CORE_PATH = Core1
+
+# BLE configurations
+override BOARD = FTHR
+LIB_CORDIO = 1
+INIT_PERIPHERAL = 1
+INIT_CENTRAL = 0
+IPATH += Core0/services
+VPATH += Core0/services
+IPATH += Core0/profiles/mcs
+VPATH += Core0/profiles/mcs
+
+override ADV_NAME = BtConn
+PROJ_CFLAGS += -DADV_NAME=\"$(ADV_NAME)\"
+PROJ_CFLAGS += -DINIT_SECURITY=FALSE
+TRACE = 1
+
+
+# ADXL sensor configurations!
+VPATH+=$(LIBS_DIR)/MiscDrivers/ACCEL/ADXL
+IPATH+=$(LIBS_DIR)/MiscDrivers/ACCEL/ADXL
+VPATH+=$(SENSOR_DRIVER_CORE_PATH)/HelperLibs
+IPATH+=$(SENSOR_DRIVER_CORE_PATH)/HelperLibs
+
+TEST_ENABLED=1
+TEST_INTERRUPT=0
+
+SRCS+=adxl363.c
+SRCS+=helper.c
+
+ifeq ($(TEST_ENABLED),1)
+VPATH += $(SENSOR_DRIVER_CORE_PATH)/TestApps
+IPATH += $(SENSOR_DRIVER_CORE_PATH)/TestApps
+SRCS+= test_fifo.c #$(SENSOR_DRIVER_CORE_PATH)/TestApps/test_fifo.c
+SRCS+= test_axis.c #$(SENSOR_DRIVER_CORE_PATH)/TestApps/test_axis.c
+SRCS+= test_initialization.c #$(SENSOR_DRIVER_CORE_PATH)/TestApps/test_initialization.c
+SRCS+= test_sample_set_read.c #$(SENSOR_DRIVER_CORE_PATH)/TestApps/test_sample_set_read.c
+endif
+
+# Configurations below this line is related with dual core running.
 # Build with the necessary Core1 startup/system files.
 ARM_DUALCORE=1
 
