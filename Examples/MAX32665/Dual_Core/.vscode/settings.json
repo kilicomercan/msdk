@@ -107,7 +107,15 @@
         "rtc.h": "c",
         "trimsir_regs.h": "c",
         "mcs_app_api.h": "c",
-        "stdint.h": "c"
+        "stdint.h": "c",
+        "common_data.h": "c",
+        "sema.h": "c",
+        "shared_data.h": "c",
+        "sensor_fw.h": "c",
+        "adxl363_test.h": "c",
+        "adxl363.h": "c",
+        "mxc_delay.h": "c",
+        "helper.h": "c"
     }
 }
 

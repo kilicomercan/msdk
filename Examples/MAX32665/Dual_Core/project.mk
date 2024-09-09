@@ -65,6 +65,9 @@ SRCS+= test_initialization.c #$(SENSOR_DRIVER_CORE_PATH)/TestApps/test_initializ
 SRCS+= test_sample_set_read.c #$(SENSOR_DRIVER_CORE_PATH)/TestApps/test_sample_set_read.c
 endif
 
+# Shared data configurations
+SRCS +=shared_data.c
+
 # Configurations below this line is related with dual core running.
 # Build with the necessary Core1 startup/system files.
 ARM_DUALCORE=1

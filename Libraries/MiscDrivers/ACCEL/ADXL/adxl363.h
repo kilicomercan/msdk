@@ -215,8 +215,9 @@ typedef struct adxl_363_spi_t{
     uint32_t spi_speed;
     #if TARGET == MAX32655
     mxc_spi_pins_t spi_pins;
-    #else
+    #elif TARGET == MAX32665
     sys_map_t spi_pins;
+    #else
     #endif
 }adxl_363_spi_t;
 
