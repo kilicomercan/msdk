@@ -186,7 +186,7 @@ typedef struct{
     int16_t y_val;
     int16_t z_val;
     int16_t temp_val;
-}adxl363_sample_pkg_t;
+} adxl363_sample_pkg_t;
 
 adxl363_sample_pkg_t adxl363_parse_sample_set(uint16_t *data);
 typedef enum adxl_odr_t{

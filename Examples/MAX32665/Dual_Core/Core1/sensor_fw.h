@@ -8,7 +8,9 @@
 extern "C" {
 #endif
 
-#define SENSOR_SAMPLE_COUNT_IN_FIFO 150
+#define SENSOR_SPI_COMM_SPEED           2400000             // In Hz
+#define SENSOR_SAMPLE_COUNT_IN_FIFO     150
+#define SENSOR_ODR                      ADXL_363_ODR_100
 
 /**
  * @brief This function initializes SPI for the targe and

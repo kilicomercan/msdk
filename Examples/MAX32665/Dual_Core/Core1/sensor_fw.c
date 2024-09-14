@@ -3,9 +3,9 @@
 #include "gpio.h"
 
 static void __init_sensor_pack(void){
-    sensor_pack.pack_list = sensor_pack_buffer;
-    sensor_pack.sem_id = 0;
-    sensor_pack.length = 0;
+    // sensor_pack.pack_list = sensor_pack_buffer;
+    // sensor_pack.length = 0;
+    memset(sensor_pack_buffer, 0, SENSOR_PACK_BUFF_LENGTH);
 }
 
 static int __init_test(void){
@@ -14,8 +14,10 @@ static int __init_test(void){
     uint8_t expected_val = 0xF3;
     uint8_t reg_id = ADXL_363_REG_DEVID;
 
+    printf("Read test val : 0x%X\r\n", dev_id);
     if(E_NO_ERROR == adxl363_reg_read(reg_id, &dev_id))
     {
+        printf("Read test val : 0x%X\r\n", dev_id);
         if (dev_id != expected_val)
         {
             ret_val = E_FAIL;
@@ -59,7 +61,7 @@ int init_sensor(void){
     if(E_NO_ERROR == ret_val){
         // Apply reading register test
         ret_val = __init_test();
-            
+
         if(E_NO_ERROR != ret_val){
             adxl363_shutdown();        
             return ret_val;
@@ -72,7 +74,6 @@ int init_sensor(void){
     adxl363_fifo_get_sample_count(&fifo_sample_count);
     
     if (SENSOR_SAMPLE_COUNT_IN_FIFO != fifo_sample_count) {
-        printf("Sample set failed : %d\n\r", fifo_sample_count);
         adxl363_shutdown();
         return E_INVALID;
     }

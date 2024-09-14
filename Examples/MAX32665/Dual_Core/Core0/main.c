@@ -62,6 +62,9 @@
 #include "mcs_app_api.h"
 #include "app_ui.h"
 
+/* Include shared data headers */
+#include "shared_data.h"
+
 /**************************************************************************************************
   Macros
 **************************************************************************************************/
@@ -171,8 +174,33 @@ void WUT_IRQHandler(void)
 /**
  * Shared variable declerations
  */
-int count0 = 0;
-int count1 = 0;
+#include "helper.h"
+
+uint8_t core0_sensor_pack_buffer[SENSOR_PACK_BUFF_LENGTH];
+
+void mainBleLoop(void){
+
+    while (TRUE)
+    {
+        WsfTimerSleepUpdate();
+        wsfOsDispatcher();
+
+        if (!WsfOsActive()){
+            WsfTimerSleep();
+        }
+        if(ready_flag){
+            printf("Ready in BLE\n");
+            memcpy(core0_sensor_pack_buffer, sensor_pack_buffer, SENSOR_PACK_BUFF_LENGTH);
+            /* Trigger event here to say that we get the packet */
+            while(MXC_SEMA_GetSema(PACK_READY_SEM_ID));
+            sensor_pack_buffer[0] = 0;
+            ready_flag = 0;
+            MXC_SEMA_FreeSema(PACK_READY_SEM_ID);
+            print_complete_pack(core0_sensor_pack_buffer);
+        }
+    }
+
+}
 
 int main(void)
 {
@@ -246,7 +274,7 @@ int main(void)
     /**
      * Initialization of the event handler loop for BLE.
      */
-    WsfOsEnterMainLoop();
+    mainBleLoop();
 
     /* Does not return. */
     return 0;
