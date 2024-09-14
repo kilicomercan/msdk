@@ -47,6 +47,26 @@
 extern int count0;
 extern int count1;
 
+/***** Macros *****/
+int get_delay_from_odr(adxl_odr_t odr) {
+    switch (odr) {   
+        case ADXL_363_ODR_12_5:
+            return (1000/12.5);
+        case ADXL_363_ODR_25:
+            return (1000/25);  
+        case ADXL_363_ODR_50:  
+            return (1000/50);  
+        case ADXL_363_ODR_100: 
+            return (1000/100); 
+        case ADXL_363_ODR_200: 
+            return (1000/200); 
+        case ADXL_363_ODR_400: 
+            return (1000/400); 
+        default:
+            return 10;
+    };
+}
+
 /***** Globals *****/
 
 /***** Functions *****/
@@ -65,56 +85,59 @@ static int __init_buttons(void){
 #endif // TRAINING
 
 void fw_loop(void){
-    printf("Loop start\r\n");
     int read_set_count = 0;
     uint8_t data_set[6] = {0};
     adxl363_sample_pkg_t sample_set_pack = {0};
     MXC_RTC_Init(0,0);
     MXC_RTC_Start();
-
+    int delay = get_delay_from_odr(ADXL_363_ODR_100);
+    int ret_val = 0;
     while (1) {
 
         // Clean local buffers in stack.
-        memset((void*)data_set, 0, 6);
-        memset((void*)&sample_set_pack, 0, sizeof(sample_set_pack));
+        memset(data_set, 0, 6);
+        memset(&sample_set_pack, 0, sizeof(sample_set_pack));
 
         // Reading sample set from sensor without temperature value.
         if(E_NO_ERROR == adxl363_fifo_read_sample_set(data_set, FALSE)){
-            
             // If ready_flag is not cleared by Core0, it may still be trying
             // to parse the data before sending to host.
+            sample_set_pack = adxl363_parse_sample_set((uint16_t*)data_set);
+            while((ret_val != MXC_RTC_GetTime(&sample_set_pack.sec, &sample_set_pack.subsec)) != E_NO_ERROR){}
             if(0 == ready_flag){
-                sample_set_pack = adxl363_parse_sample_set((uint16_t*)data_set);
-                MXC_RTC_GetTime(&sample_set_pack.sec, &sample_set_pack.subsec);
                 
                 // Wait for Core 0 to release the semaphore
-                while (MXC_SEMA_GetSema(sensor_pack.sem_id) == E_BUSY) {}
-                
+                // while (MXC_SEMA_GetSema(SENSOR_PACK_SEM_ID) == E_BUSY) {}
+
                 #if TRAINING_ENABLE 
                 if(MXC_GPIO_InGet(TRAINING_PORT, TRAINING_PIN)){
-                    sensor_pack.pack_list[read_set_count*(sizeof(adxl363_sample_pkg_t)+1)] = 1;
+                    sensor_pack_buffer[read_set_count*(1+(sizeof(adxl363_sample_pkg_t)))] = 1;
+                    // sensor_pack.pack_list[read_set_count*(sizeof(adxl363_sample_pkg_t)+1)] = 1;
                 }else{
-                    sensor_pack.pack_list[read_set_count*(sizeof(adxl363_sample_pkg_t)+1)] = 0;
+                    // sensor_pack.pack_list[read_set_count*(sizeof(adxl363_sample_pkg_t)+1)] = 0;
+                    sensor_pack_buffer[read_set_count*(1+(sizeof(adxl363_sample_pkg_t)))] = 0;
                 }
                 #else
-                sensor_pack.pack_list[read_set_count*(sizeof(adxl363_sample_pkg_t)+1)] = 0;
+                    sensor_pack_buffer[read_set_count*(1+ (sizeof(adxl363_sample_pkg_t)))] = 0;
                 #endif
 
-                memcpy(&sensor_pack.pack_list[read_set_count*(sizeof(adxl363_sample_pkg_t)+1)+1], &sample_set_pack, sizeof(sample_set_pack));
+                memcpy(&sensor_pack_buffer[read_set_count*(1+(sizeof(adxl363_sample_pkg_t)))+1], &sample_set_pack, sizeof(sample_set_pack));
+                
+                /* Increase the length of the whole packet from device to host */
+                read_set_count+=1;
 
-                MXC_SEMA_FreeSema(sensor_pack.sem_id);
-
-                if(++read_set_count > 100){
+               if(read_set_count >= 100){
+                    sensor_pack_buffer[0] = read_set_count;
                     while(MXC_SEMA_GetSema(PACK_READY_SEM_ID));
                     ready_flag = 1;
                     read_set_count = 0;
                     MXC_SEMA_FreeSema(PACK_READY_SEM_ID);
                 }
-                send_pack_to_host(&sample_set_pack);
             }
+        }else{
+            printf("Set read fail\r\n");
         }
-        MXC_Delay(MXC_DELAY_MSEC(100));
-        printf("count\r\n");
+        MXC_Delay(MXC_DELAY_MSEC(delay));
     }
 }
 
@@ -137,7 +160,6 @@ int main_core1(void)
     }else{
         printf("Sensor init SUCCESS\r\n");
     }
-    
     fw_loop();
     
     return 0;
