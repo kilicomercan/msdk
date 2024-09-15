@@ -48,13 +48,11 @@ const uint8_t attMcsSvcUuid[ATT_128_UUID_LEN] = {ATT_UUID_CUSTOM_SERVICE};
 /*Characteristic variables declaration*/
 const uint8_t svcCustomI2CUuid[ATT_128_UUID_LEN] = {ATT_UUID_CUSTOM_I2C};
 const uint8_t svcCustomI2CPeriodUuid[ATT_128_UUID_LEN] = {ATT_UUID_CUSTOM_I2C_PERIOD};
-const uint8_t svcCustomSPIUuid[ATT_128_UUID_LEN] = {ATT_UUID_CUSTOM_SPI};
-const uint8_t svcCustomSPIPeriodUuid[ATT_128_UUID_LEN] = {ATT_UUID_CUSTOM_SPI_PERIOD};
 
 static const uint8_t customSvc[] = {ATT_UUID_CUSTOM_SERVICE};
 static const uint16_t customLenSvc = sizeof(customSvc);
 
-static const uint8_t customI2CCh[] = {ATT_PROP_READ | ATT_PROP_NOTIFY,
+static const uint8_t customI2CCh[] = { ATT_PROP_READ | ATT_PROP_NOTIFY,
                                       UINT16_TO_BYTES(CUSTOM_I2C_HDL), ATT_UUID_CUSTOM_I2C};
 static const uint16_t customI2CLenCh = sizeof(customI2CCh);
 
@@ -62,32 +60,16 @@ static const uint8_t customI2CPeriodCh[] = {ATT_PROP_WRITE | ATT_PROP_READ,
                                             UINT16_TO_BYTES(CUSTOM_I2C_PERIOD_HDL), ATT_UUID_CUSTOM_I2C_PERIOD};
 static const uint16_t customI2CPeriodLenCh = sizeof(customI2CPeriodCh);
 
-static const uint8_t customSPICh[] = {ATT_PROP_READ | ATT_PROP_NOTIFY,
-                                      UINT16_TO_BYTES(CUSTOM_SPI_HDL), ATT_UUID_CUSTOM_SPI};
-static const uint16_t customSPILenCh = sizeof(customSPICh);
-
-static const uint8_t customSPIPeriodCh[] = {ATT_PROP_WRITE | ATT_PROP_READ,
-                                            UINT16_TO_BYTES(CUSTOM_SPI_PERIOD_HDL), ATT_UUID_CUSTOM_SPI_PERIOD};
-static const uint16_t customSPIPeriodLenCh = sizeof(customSPIPeriodCh);
 
 /*Characteristic values declaration*/
-static uint8_t customI2CVal[] = {0};
+static uint8_t customI2CVal[] = {0x52, 0x28, 0x34, 0x66};
 static const uint16_t customI2CValLen = sizeof(customI2CVal);
 
-static uint8_t customI2CChCcc[] = {UINT16_TO_BYTES(0x0000)};
+static uint8_t customI2CChCcc[] = {UINT16_TO_BE_BYTES(0x0000)};
 static const uint16_t customI2CChLenCcc = sizeof(customI2CChCcc);
 
-static uint8_t customI2CPeriodVal[] = {UINT16_TO_BYTES(500)};
+static uint8_t customI2CPeriodVal[] = {UINT16_TO_BE_BYTES(500)};
 static const uint16_t customI2CPeriodValLen = sizeof(customI2CPeriodVal);
-
-static uint8_t customSPIVal[] = {0};
-static const uint16_t customSPIValLen = sizeof(customSPIVal);
-
-static uint8_t customSPIChCcc[] = {UINT16_TO_BYTES(0x0000)};
-static const uint16_t customSPIChLenCcc = sizeof(customSPIChCcc);
-
-static uint8_t customSPIPeriodVal[] = {UINT16_TO_BYTES(500)};
-static const uint16_t customSPIPeriodValLen = sizeof(customSPIPeriodVal);
 
 /**************************************************************************************************
  Custom Service group
@@ -117,26 +99,9 @@ static const attsAttr_t customList[] = {
      ATTS_SET_WRITE_CBACK, (MCS_SEC_PERMIT_READ | MCS_SEC_PERMIT_WRITE)},
     /* I2C Period characteristic characteristic value */
     {svcCustomI2CPeriodUuid, (uint8_t *)customI2CPeriodVal, (uint16_t *)&customI2CPeriodValLen, sizeof(customI2CPeriodVal),
-     ATTS_SET_WRITE_CBACK, (MCS_SEC_PERMIT_READ | MCS_SEC_PERMIT_WRITE)},
-
-    /*----------------------------*/
-    /* SPI characteristic declaration */
-    {attChUuid, (uint8_t *)customSPICh, (uint16_t *)&customSPILenCh, sizeof(customSPICh), 0,
-     MCS_SEC_PERMIT_READ},
-    /* SPI characteristic value */
-    {svcCustomSPIUuid, (uint8_t *)customSPIVal, (uint16_t *)&customSPIValLen, sizeof(customSPIVal),
-     0, MCS_SEC_PERMIT_READ},
-    /*SPI characteristic value descriptor*/
-    {attCliChCfgUuid, (uint8_t *)customSPIChCcc, (uint16_t *)&customSPIChLenCcc,
-     sizeof(customSPIChCcc), ATTS_SET_CCC, (ATTS_PERMIT_READ | SVC_SEC_PERMIT_WRITE)},
-
-    /*-----------------------------*/
-    /* SPI Period characteristic declaration */
-    {attChUuid, (uint8_t *)customSPIPeriodCh, (uint16_t *)&customSPIPeriodLenCh, sizeof(customSPIPeriodCh),
-     ATTS_SET_WRITE_CBACK, (MCS_SEC_PERMIT_READ | MCS_SEC_PERMIT_WRITE)},
-    /* SPI Period characteristic characteristic value */
-    {svcCustomSPIPeriodUuid, (uint8_t *)customSPIPeriodVal, (uint16_t *)&customSPIPeriodValLen, sizeof(customSPIPeriodVal),
-     ATTS_SET_WRITE_CBACK, (MCS_SEC_PERMIT_READ | MCS_SEC_PERMIT_WRITE)}};
+     ATTS_SET_WRITE_CBACK, (MCS_SEC_PERMIT_READ | MCS_SEC_PERMIT_WRITE)}
+     
+     };
 
 /* Test group structure */
 static attsGroup_t svcCustomGroup = {NULL, (attsAttr_t *)customList, NULL,

@@ -189,7 +189,7 @@ void mainBleLoop(void){
             WsfTimerSleep();
         }
         if(ready_flag){
-            printf("Ready in BLE\n");
+            // printf("Ready in BLE\n");
             memcpy(core0_sensor_pack_buffer, sensor_pack_buffer, SENSOR_PACK_BUFF_LENGTH);
             /* Trigger event here to say that we get the packet */
             while(MXC_SEMA_GetSema(PACK_READY_SEM_ID));
