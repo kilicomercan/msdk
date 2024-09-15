@@ -17,7 +17,7 @@ void send_pack_to_host(adxl363_sample_pkg_t *sample_pack)
 void print_complete_pack(uint8_t *pack){
     int sizeof_pack = pack[0];
     int counter = 0;
-    uint8_t *single_pack = &pack[1];
+
                 
     while(counter < sizeof_pack){
         send_pack_to_host((adxl363_sample_pkg_t*)&pack[counter*(1+(sizeof(adxl363_sample_pkg_t)))+1]);

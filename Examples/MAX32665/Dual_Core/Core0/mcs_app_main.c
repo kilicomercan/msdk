@@ -60,7 +60,6 @@
 #define BTN_LONG_MS 1000
 
 #define I2C_TMR_EVT 0x9B
-#define SPI_TMR_EVT 0x9C
 
 #define BTN_1_TMR MXC_TMR2
 #define BTN_2_TMR MXC_TMR3
@@ -189,8 +188,7 @@ static const attsCccSet_t mcsAppCccSet[MCS_APP_NUM_CCC_IDX] = {
     /* cccd handle          value range               security level */
     {GATT_SC_CH_CCC_HDL, ATT_CLIENT_CFG_INDICATE,
      DM_SEC_LEVEL_NONE},                                               /* MCS_APP_GATT_SC_CCC_IDX */
-    {CUSTOM_I2C_CH_CCC_HDL, ATT_CLIENT_CFG_NOTIFY, DM_SEC_LEVEL_NONE}, /* MCS_I2C_CCC_IDX */
-    {CUSTOM_SPI_CH_CCC_HDL, ATT_CLIENT_CFG_NOTIFY, DM_SEC_LEVEL_NONE}  /* MCS_SPI_CCC_IDX */
+    {CUSTOM_I2C_CH_CCC_HDL, ATT_CLIENT_CFG_NOTIFY, DM_SEC_LEVEL_NONE} /* MCS_I2C_CCC_IDX */
 };
 
 /**************************************************************************************************
@@ -339,17 +337,7 @@ static void mcsAppProcCccState(mcsMsg_t *pMsg)
             McsI2CCheckStop((dmConnId_t)pMsg->ccc.hdr.param);
         }
     }
-    else if (pMsg->ccc.idx == MCS_SPI_CCC_IDX)
-    {
-        if (pMsg->ccc.value == ATT_CLIENT_CFG_NOTIFY)
-        {
-            McsSPICheckStart((dmConnId_t)pMsg->ccc.hdr.param, SPI_TMR_EVT, pMsg->ccc.idx);
-        }
-        else
-        {
-            McsSPICheckStop((dmConnId_t)pMsg->ccc.hdr.param);
-        }
-    }
+  
 }
 
 /*************************************************************************************************/
@@ -411,7 +399,6 @@ static void mcsAppClose(dmEvt_t *pMsg)
 {
     /* stop mcs measurements */
     McsI2CCheckStop((dmConnId_t)pMsg->hdr.param);
-    McsSPICheckStop((dmConnId_t)pMsg->hdr.param);
 }
 
 /*************************************************************************************************/
@@ -646,11 +633,6 @@ static void mcsAppProcMsg(dmEvt_t *pMsg)
     case I2C_TMR_EVT:
         APP_TRACE_INFO0("I2C timer expired");
         McsI2CTimerExpired((wsfMsgHdr_t *)pMsg);
-        break;
-
-    case SPI_TMR_EVT:
-        APP_TRACE_INFO0("SPI timer expired");
-        McsSPITimerExpired((wsfMsgHdr_t *)pMsg);
         break;
 
     default:

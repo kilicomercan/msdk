@@ -42,7 +42,6 @@ enum
     MCS_APP_GATT_SC_CCC_IDX,  /*! GATT service, service changed characteristic */
     
     MCS_I2C_CCC_IDX,          /*! MCS service, I2C characteristic */
-    MCS_SPI_CCC_IDX,          /*! MCS service, SPI characteristic */
 
     MCS_APP_NUM_CCC_IDX
 };
@@ -115,19 +114,6 @@ void McsI2CCheckStart(dmConnId_t connId, uint8_t timerEvt, uint8_t mcsCccIdx);
 
 /*************************************************************************************************/
 /*!
- *  \brief  Start periodic SPI value check.  This function starts a timer to perform
- *          periodic button checks.
- *
- *  \param  connId      DM connection identifier.
- *  \param  timerEvt    WSF event designated by the application for the timer.
- *
- *  \return None.
- */
-/*************************************************************************************************/
-void McsSPICheckStart(dmConnId_t connId, uint8_t timerEvt, uint8_t mcsCccIdx);
-
-/*************************************************************************************************/
-/*!
  *  \brief  Stop periodic mcs button read.
  *
  *  \param  connId      DM connection identifier.
@@ -136,19 +122,8 @@ void McsSPICheckStart(dmConnId_t connId, uint8_t timerEvt, uint8_t mcsCccIdx);
  */
 /*************************************************************************************************/
 void McsI2CCheckStop(dmConnId_t connId);
-/*************************************************************************************************/
-/*!
- *  \brief  Stop periodic button state check.
- *
- *  \param  connId      DM connection identifier.
- *
- *  \return None.
- */
-/*************************************************************************************************/
-void McsSPICheckStop(dmConnId_t connId);
 
 void McsI2CTimerExpired(wsfMsgHdr_t *pMsg);
-void McsSPITimerExpired(wsfMsgHdr_t *pMsg);
 
 #ifdef __cplusplus
 };
