@@ -18,5 +18,7 @@ class BleGui(Ui_MainWindow):
         self.MainWindow = QtWidgets.QMainWindow()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self.MainWindow)
+
+    def start_gui(self):
         self.MainWindow.show()
         sys.exit(self.app.exec_())

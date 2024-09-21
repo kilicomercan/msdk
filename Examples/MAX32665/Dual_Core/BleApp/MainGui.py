@@ -25,9 +25,15 @@ class Ui_MainWindow(object):
         self.verticalLayout_3 = QtWidgets.QVBoxLayout()
         self.verticalLayout_3.setSizeConstraint(QtWidgets.QLayout.SetDefaultConstraint)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
-        self.BleDevicesListWidget = QtWidgets.QListWidget(self.MWidget)
-        self.BleDevicesListWidget.setObjectName("BleDevicesListWidget")
-        self.verticalLayout_3.addWidget(self.BleDevicesListWidget)
+        self.BleDevicestableWidget = QtWidgets.QTableWidget(self.MWidget)
+        self.BleDevicestableWidget.setObjectName("BleDevicestableWidget")
+        self.BleDevicestableWidget.setColumnCount(2)
+        self.BleDevicestableWidget.setRowCount(0)
+        item = QtWidgets.QTableWidgetItem()
+        self.BleDevicestableWidget.setHorizontalHeaderItem(0, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.BleDevicestableWidget.setHorizontalHeaderItem(1, item)
+        self.verticalLayout_3.addWidget(self.BleDevicestableWidget)
         self.verticalLayout_2 = QtWidgets.QVBoxLayout()
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.horizontalLayout = QtWidgets.QHBoxLayout()
@@ -59,8 +65,6 @@ class Ui_MainWindow(object):
         self.horizontalLayout_2.addWidget(self.pushButton_ReadData)
         self.verticalLayout_2.addLayout(self.horizontalLayout_2)
         self.verticalLayout_3.addLayout(self.verticalLayout_2)
-        self.verticalLayout_3.setStretch(0, 5)
-        self.verticalLayout_3.setStretch(1, 1)
         self.horizontalLayout_4.addLayout(self.verticalLayout_3)
         self.verticalLayout = QtWidgets.QVBoxLayout()
         self.verticalLayout.setObjectName("verticalLayout")
@@ -109,6 +113,10 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "Motion Detector"))
+        item = self.BleDevicestableWidget.horizontalHeaderItem(0)
+        item.setText(_translate("MainWindow", "Name"))
+        item = self.BleDevicestableWidget.horizontalHeaderItem(1)
+        item.setText(_translate("MainWindow", "Addr"))
         self.pushButton_Scan.setText(_translate("MainWindow", "Scan"))
         self.pushButton_Connect.setText(_translate("MainWindow", "Connect"))
         self.pushButton_Disconnect.setText(_translate("MainWindow", "Disconnect"))
@@ -121,6 +129,3 @@ class Ui_MainWindow(object):
         self.actionDisconnect.setText(_translate("MainWindow", "Disconnect"))
         self.actionExit.setText(_translate("MainWindow", "Exit"))
         self.actionScan.setText(_translate("MainWindow", "Scan"))
-
-
-
