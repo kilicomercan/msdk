@@ -2,29 +2,38 @@
     "configurations": [
         {
             "name": "Debug Arm (Cortex-debug)",
-            "cwd":"${workspaceRoot}",
+            "cwd": "${workspaceRoot}",
             "executable": "${workspaceFolder}/build/${config:program_file}",
-            "loadFiles": ["${workspaceFolder}/build/${config:program_file}"],
-            "symbolFiles": [{
-                "file": "${workspaceFolder}/build/${config:symbol_file}"
-            }],
+            "loadFiles": [
+                "${workspaceFolder}/build/${config:program_file}"
+            ],
+            "symbolFiles": [
+                {
+                    "file": "${workspaceFolder}/build/${config:symbol_file}"
+                }
+            ],
             "request": "launch",
             "type": "cortex-debug",
             "servertype": "openocd",
             "linux": {
                 "gdbPath": "${config:ARM_GCC_path}/bin/arm-none-eabi-gdb",
-                "serverpath": "${config:OCD_path}/openocd",
+                "serverpath": "${config:OCD_path}/openocd"
             },
             "windows": {
                 "gdbPath": "${config:ARM_GCC_path}/bin/arm-none-eabi-gdb.exe",
-                "serverpath": "${config:OCD_path}/openocd.exe",
+                "serverpath": "${config:OCD_path}/openocd.exe"
             },
             "osx": {
                 "gdbPath": "${config:ARM_GCC_path}/bin/arm-none-eabi-gdb",
-                "serverpath": "${config:OCD_path}/openocd",
+                "serverpath": "${config:OCD_path}/openocd"
             },
-            "searchDir": ["${config:OCD_path}/scripts"],
-            "configFiles": ["interface/${config:M4_OCD_interface_file}", "target/${config:M4_OCD_target_file}"],
+            "searchDir": [
+                "${config:OCD_path}/scripts"
+            ],
+            "configFiles": [
+                "interface/${config:M4_OCD_interface_file}",
+                "target/${config:M4_OCD_target_file}"
+            ],
             "interface": "swd",
             "runToEntryPoint": "main",
             "svdFile": "${config:MAXIM_PATH}/Libraries/CMSIS/Device/Maxim/${config:target}/Include/${config:target}.svd"
@@ -42,15 +51,15 @@
             "MIMode": "gdb",
             "linux": {
                 "miDebuggerPath": "${config:ARM_GCC_path}/bin/arm-none-eabi-gdb",
-                "debugServerPath": "${config:OCD_path}/openocd",
+                "debugServerPath": "${config:OCD_path}/openocd"
             },
             "windows": {
                 "miDebuggerPath": "${config:ARM_GCC_path}/bin/arm-none-eabi-gdb.exe",
-                "debugServerPath": "${config:OCD_path}/openocd.exe",
+                "debugServerPath": "${config:OCD_path}/openocd.exe"
             },
             "osx": {
                 "miDebuggerPath": "${config:ARM_GCC_path}/bin/arm-none-eabi-gdb",
-                "debugServerPath": "${config:OCD_path}/bin/openocd",
+                "debugServerPath": "${config:OCD_path}/bin/openocd"
             },
             "logging": {
                 "exceptions": true,
@@ -64,19 +73,41 @@
             "filterStderr": true,
             "targetArchitecture": "arm",
             "customLaunchSetupCommands": [
-                {"text":"-list-features"}
+                {
+                    "text": "-list-features"
+                }
             ],
             "setupCommands": [
-                { "text":"set logging overwrite on"},
-                { "text":"set logging file debug-arm.log"},
-                { "text":"set logging on"},
-                { "text":"cd ${workspaceFolder}" },
-                { "text":"exec-file build/${config:program_file}" },
-                { "text":"symbol-file build/${config:symbol_file}" },
-                { "text":"target remote localhost:3333" },
-                { "text":"monitor reset halt" },
-                { "text":"set $pc=Reset_Handler"},
-                { "text":"b main" }
+                {
+                    "text": "set logging overwrite on"
+                },
+                {
+                    "text": "set logging file debug-arm.log"
+                },
+                {
+                    "text": "set logging on"
+                },
+                {
+                    "text": "cd ${workspaceFolder}"
+                },
+                {
+                    "text": "exec-file build/${config:program_file}"
+                },
+                {
+                    "text": "symbol-file build/${config:symbol_file}"
+                },
+                {
+                    "text": "target remote localhost:3333"
+                },
+                {
+                    "text": "monitor reset halt"
+                },
+                {
+                    "text": "set $pc=Reset_Handler"
+                },
+                {
+                    "text": "b main"
+                }
             ]
         },
         {
@@ -92,15 +123,15 @@
             "MIMode": "gdb",
             "linux": {
                 "miDebuggerPath": "${config:xPack_GCC_path}/bin/riscv-none-elf-gdb",
-                "debugServerPath": "${config:OCD_path}/openocd",
+                "debugServerPath": "${config:OCD_path}/openocd"
             },
             "windows": {
                 "miDebuggerPath": "${config:xPack_GCC_path}/bin/riscv-none-elf-gdb.exe",
-                "debugServerPath": "${config:OCD_path}/openocd.exe",
+                "debugServerPath": "${config:OCD_path}/openocd.exe"
             },
             "osx": {
                 "miDebuggerPath": "${config:xPack_GCC_path}/bin/riscv-none-elf-gdb",
-                "debugServerPath": "${config:OCD_path}/bin/openocd",
+                "debugServerPath": "${config:OCD_path}/bin/openocd"
             },
             "logging": {
                 "exceptions": true,
@@ -113,21 +144,53 @@
             "serverStarted": "Info : Listening on port 3334 for gdb connections",
             "filterStderr": true,
             "customLaunchSetupCommands": [
-                {"text":"-list-features"}
+                {
+                    "text": "-list-features"
+                }
             ],
             "targetArchitecture": "arm",
             "setupCommands": [
-                { "text":"set logging overwrite on"},
-                { "text":"set logging file debug-riscv.log"},
-                { "text":"set logging on"},
-                { "text":"cd ${workspaceFolder}" },
-                { "text": "set architecture riscv:rv32", "ignoreFailures": false },          
-                { "text":"exec-file build/${config:program_file}", "ignoreFailures": false },
-                { "text":"symbol-file buildrv/${config:symbol_file}", "ignoreFailures": false },
-                { "text":"target remote localhost:3334" },
-                { "text":"b main" },
-                { "text": "set $pc=Reset_Handler","ignoreFailures": false }
+                {
+                    "text": "set logging overwrite on"
+                },
+                {
+                    "text": "set logging file debug-riscv.log"
+                },
+                {
+                    "text": "set logging on"
+                },
+                {
+                    "text": "cd ${workspaceFolder}"
+                },
+                {
+                    "text": "set architecture riscv:rv32",
+                    "ignoreFailures": false
+                },
+                {
+                    "text": "exec-file build/${config:program_file}",
+                    "ignoreFailures": false
+                },
+                {
+                    "text": "symbol-file buildrv/${config:symbol_file}",
+                    "ignoreFailures": false
+                },
+                {
+                    "text": "target remote localhost:3334"
+                },
+                {
+                    "text": "b main"
+                },
+                {
+                    "text": "set $pc=Reset_Handler",
+                    "ignoreFailures": false
+                }
             ]
+        },
+        {
+            "name": "Python Debugger: Python File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${BleApp.py}"
         }
     ]
 }
