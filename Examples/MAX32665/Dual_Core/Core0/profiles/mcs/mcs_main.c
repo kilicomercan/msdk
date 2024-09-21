@@ -26,11 +26,12 @@
 #include "mcs_api.h"
 #include "app_ui.h"
 #include "pal_led.h"
+#include "shared_data.h"
 
 /**************************************************************************************************
   Macros
 **************************************************************************************************/
-#define DEAULT_TIMER_PERIOD 500
+#define DEAULT_TIMER_PERIOD ((1000/SHARED_SENSOR_ODR) * SENSOR_IND_PACK_COUNT)
 /**************************************************************************************************
   Local Variables
 **************************************************************************************************/
@@ -229,18 +230,35 @@ static mcsConn_t *cgmpsFindNextToSend(uint8_t cccIdx)
     return NULL;
 }
 
+// static uint16_t data_prt[3];
+static int counter_test = 0;
 void McsI2CTimerExpired(wsfMsgHdr_t *pMsg)
 {
     mcsConn_t *pConn;
-    static uint8_t val = 0x00;
-    /* if there are active connections */
+    static uint8_t data_set_core1[SENSOR_DATA_TRANSFER] = {0};
+    while(MXC_SEMA_GetSema(PACK_READY_SEM_ID));
+    if(ready_flag){
+        memcpy(data_set_core1, &sensor_pack_buffer[last_send_pack_idx*SENSOR_DATA_TRANSFER], SENSOR_DATA_TRANSFER);
+        memset(&sensor_pack_buffer[last_send_pack_idx], 0, SENSOR_DATA_TRANSFER);
+        ready_flag -= 1;
+        MXC_SEMA_FreeSema(PACK_READY_SEM_ID);
+        last_send_pack_idx += SENSOR_IND_PACK_COUNT;
+        last_send_pack_idx %= (SHARED_SENSOR_ODR/SENSOR_IND_PACK_COUNT);
+    }else{
+        MXC_SEMA_FreeSema(PACK_READY_SEM_ID);
+        memset(data_set_core1, 0, SENSOR_DATA_TRANSFER);
+    }
+    // if(counter_test %10){
+    //     uint16_t *data_prt = (uint16_t*)&data_set_core1[1];
+    //     printf("%d %d %d\r\n", data_prt[0], data_prt[1], data_prt[2]);
+    //     counter_test = 0;
+    // }
     if (mcsNoConnActive() == FALSE)
     {
         /* find next connection to send (note ccc idx is stored in timer status) */
         if ((pConn = cgmpsFindNextToSend(pMsg->status)) != NULL)
         {
-            val++;
-            AttsHandleValueNtf(pConn->connId, CUSTOM_I2C_HDL, 1, &val);
+            AttsHandleValueNtf(pConn->connId, CUSTOM_I2C_HDL,sizeof(data_set_core1), &data_set_core1);
             mcsCb.txReady = FALSE;
             pConn->mcsToSend = FALSE;
         }

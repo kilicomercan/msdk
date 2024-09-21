@@ -68,7 +68,7 @@ static const uint16_t customI2CValLen = sizeof(customI2CVal);
 static uint8_t customI2CChCcc[] = {UINT16_TO_BE_BYTES(0x0000)};
 static const uint16_t customI2CChLenCcc = sizeof(customI2CChCcc);
 
-static uint8_t customI2CPeriodVal[] = {UINT16_TO_BE_BYTES(500)};
+static uint8_t customI2CPeriodVal[] = {UINT16_TO_BE_BYTES(20)};
 static const uint16_t customI2CPeriodValLen = sizeof(customI2CPeriodVal);
 
 /**************************************************************************************************

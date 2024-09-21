@@ -6,6 +6,7 @@ static void __init_sensor_pack(void){
     // sensor_pack.pack_list = sensor_pack_buffer;
     // sensor_pack.length = 0;
     memset(sensor_pack_buffer, 0, SENSOR_PACK_BUFF_LENGTH);
+    last_send_pack_idx = 0;
 }
 
 static int __init_test(void){
@@ -31,12 +32,12 @@ int init_sensor(void){
     int ret_val = E_NO_ERROR;
     
     adxl_363_controller_t controller = {0};
-    controller.odr = ADXL_363_ODR_100;
+    controller.odr = SENSOR_ODR;
     controller.range = ADXL_363_RANGE_8G;
 
     adxl_363_spi_t spi_cfg = {0};
     spi_cfg.spi_ssid = 0;
-    spi_cfg.spi_speed = 2400000;
+    spi_cfg.spi_speed = SENSOR_SPI_COMM_SPEED;
 
 #if TARGET == MAX32655
     spi_cfg.spi_id = 0;
