@@ -117,7 +117,12 @@
         "mxc_delay.h": "c",
         "helper.h": "c",
         "wsf_cs.h": "c",
-        "wsf_heap.h": "c"
+        "wsf_heap.h": "c",
+        "app_ui.h": "c",
+        "mcs_api.h": "c",
+        "svc_btconn.h": "c",
+        "svc_cfg.h": "c",
+        "wsf_types.h": "c"
     }
 }
 

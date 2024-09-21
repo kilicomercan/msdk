@@ -299,7 +299,6 @@ int adxl363_fifo_read_sample_set(uint8_t *buff, bool temp_data)
         // Temperature data is not in sample set. So, read 3 bytes.
         ret_val = adxl363_fifo_read((uint8_t *)&sample, 3);
     }
-
     if (E_NO_ERROR == ret_val) {
         if (temp_data) {
             memcpy(buff, &sample, 8);

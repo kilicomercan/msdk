@@ -48,24 +48,6 @@ extern int count0;
 extern int count1;
 
 /***** Macros *****/
-int get_delay_from_odr(adxl_odr_t odr) {
-    switch (odr) {   
-        case ADXL_363_ODR_12_5:
-            return (1000/12.5);
-        case ADXL_363_ODR_25:
-            return (1000/25);  
-        case ADXL_363_ODR_50:  
-            return (1000/50);  
-        case ADXL_363_ODR_100: 
-            return (1000/100); 
-        case ADXL_363_ODR_200: 
-            return (1000/200); 
-        case ADXL_363_ODR_400: 
-            return (1000/400); 
-        default:
-            return 10;
-    };
-}
 
 /***** Globals *****/
 
@@ -86,54 +68,34 @@ static int __init_buttons(void){
 
 void fw_loop(void){
     int read_set_count = 0;
-    uint8_t data_set[6] = {0};
-    adxl363_sample_pkg_t sample_set_pack = {0};
     MXC_RTC_Init(0,0);
     MXC_RTC_Start();
-    int delay = get_delay_from_odr(ADXL_363_ODR_100);
-    int ret_val = 0;
+    uint8_t data_set[7] = {0};
+    int delay = (1000/SHARED_SENSOR_ODR);
     while (1) {
 
         // Clean local buffers in stack.
-        memset(data_set, 0, 6);
-        memset(&sample_set_pack, 0, sizeof(sample_set_pack));
-
+        memset(data_set, 0, sizeof(data_set));
         // Reading sample set from sensor without temperature value.
-        if(E_NO_ERROR == adxl363_fifo_read_sample_set(data_set, FALSE)){
-            // If ready_flag is not cleared by Core0, it may still be trying
-            // to parse the data before sending to host.
-            sample_set_pack = adxl363_parse_sample_set((uint16_t*)data_set);
-            while((ret_val != MXC_RTC_GetTime(&sample_set_pack.sec, &sample_set_pack.subsec)) != E_NO_ERROR){}
-            if(0 == ready_flag){
-                
-                // Wait for Core 0 to release the semaphore
-                // while (MXC_SEMA_GetSema(SENSOR_PACK_SEM_ID) == E_BUSY) {}
-
+        if(E_NO_ERROR == adxl363_fifo_read_sample_set(&data_set[1], FALSE)){
                 #if TRAINING_ENABLE 
                 if(MXC_GPIO_InGet(TRAINING_PORT, TRAINING_PIN)){
-                    sensor_pack_buffer[read_set_count*(1+(sizeof(adxl363_sample_pkg_t)))] = 1;
-                    // sensor_pack.pack_list[read_set_count*(sizeof(adxl363_sample_pkg_t)+1)] = 1;
+                    data_set[0] = 1;
                 }else{
-                    // sensor_pack.pack_list[read_set_count*(sizeof(adxl363_sample_pkg_t)+1)] = 0;
-                    sensor_pack_buffer[read_set_count*(1+(sizeof(adxl363_sample_pkg_t)))] = 0;
+                    data_set[0] = 0;
                 }
                 #else
-                    sensor_pack_buffer[read_set_count*(1+ (sizeof(adxl363_sample_pkg_t)))] = 0;
+                    data_set[0] = 0;
                 #endif
-
-                memcpy(&sensor_pack_buffer[read_set_count*(1+(sizeof(adxl363_sample_pkg_t)))+1], &sample_set_pack, sizeof(sample_set_pack));
                 
+                while(MXC_SEMA_GetSema(PACK_READY_SEM_ID));
+                memcpy(&sensor_pack_buffer[read_set_count*SENSOR_SET_LENGTH], data_set, sizeof(data_set));
+                ready_flag += 1;
+                MXC_SEMA_FreeSema(PACK_READY_SEM_ID);
                 /* Increase the length of the whole packet from device to host */
                 read_set_count+=1;
-
-               if(read_set_count >= 100){
-                    sensor_pack_buffer[0] = read_set_count;
-                    while(MXC_SEMA_GetSema(PACK_READY_SEM_ID));
-                    ready_flag = 1;
-                    read_set_count = 0;
-                    MXC_SEMA_FreeSema(PACK_READY_SEM_ID);
-                }
-            }
+                read_set_count %= SHARED_SENSOR_ODR;
+                
         }else{
             printf("Set read fail\r\n");
         }

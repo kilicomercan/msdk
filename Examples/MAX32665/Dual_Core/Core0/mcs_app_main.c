@@ -631,7 +631,7 @@ static void mcsAppProcMsg(dmEvt_t *pMsg)
         break;
 
     case I2C_TMR_EVT:
-        APP_TRACE_INFO0("I2C timer expired");
+        // APP_TRACE_INFO0("I2C timer expired");
         McsI2CTimerExpired((wsfMsgHdr_t *)pMsg);
         break;
 
@@ -810,7 +810,7 @@ void McsAppHandler(wsfEventMask_t event, wsfMsgHdr_t *pMsg)
 {
     if (pMsg != NULL)
     {
-        APP_TRACE_INFO1("McsApp got evt %d", pMsg->event);
+        // APP_TRACE_INFO1("McsApp got evt %d", pMsg->event);
 
         /* process ATT messages */
         if (pMsg->event >= ATT_CBACK_START && pMsg->event <= ATT_CBACK_END)

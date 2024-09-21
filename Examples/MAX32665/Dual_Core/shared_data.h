@@ -16,17 +16,18 @@ extern "C" {
 #define SENSOR_PACK_TYPE_DATA (1<<2)
 #define SENSOR_PACK_SEM_ID 0
 #define PACK_READY_SEM_ID 1
-
+#define SHARED_SENSOR_ODR 200 // In terms of SAMPLE SET COUNT
+#define SENSOR_SET_LENGTH 7
+#define SENSOR_IND_PACK_COUNT 2
+#define SENSOR_DATA_TRANSFER (SENSOR_SET_LENGTH*SENSOR_IND_PACK_COUNT)
 /**
  * 1 pack is 7-byte long.
- * 1 byte to determine the size of the packet list. <How many sets are there in the packet>
- * 1 byte to determine the packet type, training or not.
- * 2 bytes per every axis data.
- * 3 bytes per a set(X,Y,Z).
- * 100 is ODR.
+ * First byte is to represent the pack type. Other 6 bytes 
+ * is to store the X,Y,Z sensor value.
+ * 
  */
-#define SENSOR_PACK_BUFF_LENGTH (1+ (1 + sizeof(adxl363_sample_pkg_t))*100) 
-
+#define SENSOR_PACK_BUFF_LENGTH (SENSOR_SET_LENGTH*SHARED_SENSOR_ODR) 
+extern uint16_t last_send_pack_idx;
 // struct sensor_pack_t{
 //     uint8_t length; // Number of sets (x,y,z).
 //     uint8_t *pack_list;
