@@ -248,11 +248,7 @@ void McsI2CTimerExpired(wsfMsgHdr_t *pMsg)
         MXC_SEMA_FreeSema(PACK_READY_SEM_ID);
         memset(data_set_core1, 0, SENSOR_DATA_TRANSFER);
     }
-    // if(counter_test %10){
-    //     uint16_t *data_prt = (uint16_t*)&data_set_core1[1];
-    //     printf("%d %d %d\r\n", data_prt[0], data_prt[1], data_prt[2]);
-    //     counter_test = 0;
-    // }
+
     if (mcsNoConnActive() == FALSE)
     {
         /* find next connection to send (note ccc idx is stored in timer status) */

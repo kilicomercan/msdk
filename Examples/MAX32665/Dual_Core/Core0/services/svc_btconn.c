@@ -56,7 +56,7 @@ static const uint8_t customI2CCh[] = { ATT_PROP_READ | ATT_PROP_NOTIFY,
                                       UINT16_TO_BYTES(CUSTOM_I2C_HDL), ATT_UUID_CUSTOM_I2C};
 static const uint16_t customI2CLenCh = sizeof(customI2CCh);
 
-static const uint8_t customI2CPeriodCh[] = {ATT_PROP_WRITE | ATT_PROP_READ,
+static const uint8_t customI2CPeriodCh[] = {ATT_PROP_WRITE | ATT_PROP_READ | ATT_PROP_INDICATE,
                                             UINT16_TO_BYTES(CUSTOM_I2C_PERIOD_HDL), ATT_UUID_CUSTOM_I2C_PERIOD};
 static const uint16_t customI2CPeriodLenCh = sizeof(customI2CPeriodCh);
 
