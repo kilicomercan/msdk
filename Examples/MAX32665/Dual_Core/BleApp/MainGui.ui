@@ -74,23 +74,23 @@
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_2">
           <item>
-           <widget class="QPushButton" name="pushButton_StartInference">
+           <widget class="QPushButton" name="pushButton_Inference">
             <property name="text">
-             <string>Start Inference</string>
+             <string>Inference</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="pushButton_SaveData">
+           <widget class="QPushButton" name="pushButton_Save">
             <property name="text">
-             <string>Save Data</string>
+             <string>Save</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="pushButton_ReadData">
+           <widget class="QPushButton" name="pushButton_Stream">
             <property name="text">
-             <string>Read</string>
+             <string>Stream</string>
             </property>
            </widget>
           </item>
@@ -105,14 +105,14 @@
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout_3">
         <item>
-         <widget class="QLabel" name="label_Inference">
+         <widget class="QLabel" name="label_Prediction">
           <property name="text">
-           <string>Inference:</string>
+           <string>Prediction :</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="lineEdit_Inference"/>
+         <widget class="QLineEdit" name="lineEdit_Prediction"/>
         </item>
        </layout>
       </item>
