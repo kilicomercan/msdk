@@ -306,7 +306,7 @@ int adxl363_fifo_read_sample_set(uint8_t *buff, bool temp_data)
             memcpy(buff, &sample, 6);
         }
     }
-
+    
     return ret_val;
 }
 

@@ -66,18 +66,19 @@ static int __init_buttons(void){
 }
 #endif // TRAINING
 
+// static int counter_test = 0;
 void fw_loop(void){
     int read_set_count = 0;
     MXC_RTC_Init(0,0);
     MXC_RTC_Start();
-    uint8_t data_set[7] = {0};
+    uint8_t data_set[SENSOR_SET_LENGTH] = {0};
     int delay = (1000/SHARED_SENSOR_ODR);
     while (1) {
 
         // Clean local buffers in stack.
         memset(data_set, 0, sizeof(data_set));
         // Reading sample set from sensor without temperature value.
-        if(E_NO_ERROR == adxl363_fifo_read_sample_set(&data_set[1], FALSE)){
+        if(E_NO_ERROR == adxl363_fifo_read_sample_set(&data_set[1+TIMESTAMP_LENGHT], FALSE)){
                 #if TRAINING_ENABLE 
                 if(MXC_GPIO_InGet(TRAINING_PORT, TRAINING_PIN)){
                     data_set[0] = 1;
@@ -88,14 +89,26 @@ void fw_loop(void){
                     data_set[0] = 0;
                 #endif
                 
+                // uint32_t* sec = (uint32_t*)&data_set[1];
+                // uint32_t* sub_sec = (uint32_t*)&data_set[5];
+                #if TIMESTAMP_LENGHT != 0
+                while(E_NO_ERROR != MXC_RTC_GetTime((uint32_t*)&data_set[1], (uint32_t*)&data_set[5])){}
+                #endif
+                
+                // printf("%d. %d\r\n",*sec, *sub_sec);
                 while(MXC_SEMA_GetSema(PACK_READY_SEM_ID));
-                memcpy(&sensor_pack_buffer[read_set_count*SENSOR_SET_LENGTH], data_set, sizeof(data_set));
+                memcpy(&sensor_pack_buffer[read_set_count*(SENSOR_SET_LENGTH)], data_set, sizeof(data_set));
                 ready_flag += 1;
                 MXC_SEMA_FreeSema(PACK_READY_SEM_ID);
                 /* Increase the length of the whole packet from device to host */
                 read_set_count+=1;
                 read_set_count %= SHARED_SENSOR_ODR;
-                
+                // uint16_t* ptr = &data_set[1];
+                // for(;counter_test < 3;counter_test++){
+                //     printf("%d ", *ptr);
+                //     ptr++;
+                // }
+                // counter_test = 0;
         }else{
             printf("Set read fail\r\n");
         }

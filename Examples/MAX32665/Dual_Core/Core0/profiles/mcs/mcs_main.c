@@ -239,10 +239,13 @@ void McsI2CTimerExpired(wsfMsgHdr_t *pMsg)
     while(MXC_SEMA_GetSema(PACK_READY_SEM_ID));
     if(ready_flag){
         memcpy(data_set_core1, &sensor_pack_buffer[last_send_pack_idx*SENSOR_DATA_TRANSFER], SENSOR_DATA_TRANSFER);
-        memset(&sensor_pack_buffer[last_send_pack_idx], 0, SENSOR_DATA_TRANSFER);
-        ready_flag -= 1;
+        memset(&sensor_pack_buffer[last_send_pack_idx*SENSOR_DATA_TRANSFER], 0, SENSOR_DATA_TRANSFER);
+        ready_flag -= SENSOR_IND_PACK_COUNT;
         MXC_SEMA_FreeSema(PACK_READY_SEM_ID);
-        last_send_pack_idx += SENSOR_IND_PACK_COUNT;
+
+        // Sensor data transfer size is defined according to 
+        last_send_pack_idx += 1;
+        // We are sending sets 2 by 2. So modulate it with odr/set_count_in_pack
         last_send_pack_idx %= (SHARED_SENSOR_ODR/SENSOR_IND_PACK_COUNT);
     }else{
         MXC_SEMA_FreeSema(PACK_READY_SEM_ID);
@@ -254,7 +257,7 @@ void McsI2CTimerExpired(wsfMsgHdr_t *pMsg)
         /* find next connection to send (note ccc idx is stored in timer status) */
         if ((pConn = cgmpsFindNextToSend(pMsg->status)) != NULL)
         {
-            AttsHandleValueNtf(pConn->connId, CUSTOM_I2C_HDL,sizeof(data_set_core1), &data_set_core1);
+            AttsHandleValueNtf(pConn->connId, CUSTOM_I2C_HDL,sizeof(data_set_core1), (uint8_t*)data_set_core1);
             mcsCb.txReady = FALSE;
             pConn->mcsToSend = FALSE;
         }

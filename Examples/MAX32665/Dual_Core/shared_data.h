@@ -16,23 +16,27 @@ extern "C" {
 #define SENSOR_PACK_TYPE_DATA (1<<2)
 #define SENSOR_PACK_SEM_ID 0
 #define PACK_READY_SEM_ID 1
-#define SHARED_SENSOR_ODR 200 // In terms of SAMPLE SET COUNT
-#define SENSOR_SET_LENGTH 7
-#define SENSOR_IND_PACK_COUNT 2
-#define SENSOR_DATA_TRANSFER (SENSOR_SET_LENGTH*SENSOR_IND_PACK_COUNT)
-/**
- * 1 pack is 7-byte long.
- * First byte is to represent the pack type. Other 6 bytes 
- * is to store the X,Y,Z sensor value.
- * 
- */
-#define SENSOR_PACK_BUFF_LENGTH (SENSOR_SET_LENGTH*SHARED_SENSOR_ODR) 
-extern uint16_t last_send_pack_idx;
-// struct sensor_pack_t{
-//     uint8_t length; // Number of sets (x,y,z).
-//     uint8_t *pack_list;
-// };
+#define SHARED_SENSOR_ODR 100 // In terms of SAMPLE SET COUNT
 
+#define SENSOR_IND_PACK_COUNT 1
+#define TIMESTAMP_INCLUDED 1
+
+/** Inclusion of timestamp at sensor side is better 
+ * to get real time data. Transmission issues will
+ * not distrupt timestamp at this way.
+ */
+#if TIMESTAMP_INCLUDED == 1
+#define TIMESTAMP_LENGHT 8
+#define SENSOR_SET_LENGTH (7+TIMESTAMP_LENGHT)
+#define SENSOR_DATA_TRANSFER (SENSOR_SET_LENGTH*SENSOR_IND_PACK_COUNT) 
+#define SENSOR_PACK_BUFF_LENGTH (SENSOR_SET_LENGTH *SHARED_SENSOR_ODR) 
+#else
+#define SENSOR_SET_LENGTH 7
+#define SENSOR_PACK_BUFF_LENGTH (SENSOR_SET_LENGTH*SHARED_SENSOR_ODR) 
+#define SENSOR_DATA_TRANSFER (SENSOR_SET_LENGTH*SENSOR_IND_PACK_COUNT) 
+#endif
+
+extern uint16_t last_send_pack_idx;
 extern struct sensor_pack_t sensor_pack;
 extern uint8_t sensor_pack_buffer[];
 extern uint8_t ready_flag;
