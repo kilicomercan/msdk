@@ -6,9 +6,10 @@ from datetime import datetime
 from MainGui import Ui_MainWindow
 from PyQt5.QtWidgets import QApplication, QTableWidget, QListWidget, QPushButton, QVBoxLayout, QWidget
 from bleuio_lib.bleuio_funcs import BleuIO
+from BleFile import BleFile
 
 class BleConnDevice:
-    def __init__(self, ui:Ui_MainWindow = None):
+    def __init__(self, ui:Ui_MainWindow = None, file:BleFile = None):
         self.connection_response = None
         self.connection_name = None
         self.connection_addr = None
@@ -16,8 +17,9 @@ class BleConnDevice:
         self.current_name = None
         self.dongle = None
         self.ui = ui
+        self.file = file
         self.__static_data_handler_id = "1502"
-
+    
     def __str__(self):
         return f"BtConn(name={self.connection_name}, addr={self.connection_addr})"
 

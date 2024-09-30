@@ -185,16 +185,6 @@ void mainBleLoop(void){
         if (!WsfOsActive()){
             WsfTimerSleep();
         }
-        /*if(ready_flag){
-            // printf("Ready in BLE\n");
-            memcpy(core0_sensor_pack_buffer, sensor_pack_buffer, SENSOR_PACK_BUFF_LENGTH);
-            // Trigger event here to say that we get the packet
-            while(MXC_SEMA_GetSema(PACK_READY_SEM_ID));
-            sensor_pack_buffer[0] = 0;
-            ready_flag = 0;
-            MXC_SEMA_FreeSema(PACK_READY_SEM_ID);
-            // print_complete_pack(core0_sensor_pack_buffer);
-        } */
     }
 
 }
