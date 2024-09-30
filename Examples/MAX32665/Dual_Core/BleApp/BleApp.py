@@ -3,11 +3,19 @@ from PyQt5.QtWidgets import QTableWidgetItem
 from PyQt5.QtGui import QColor
 from BleGui import BleGui
 import threading
+from BleFile import BleFile
 
-class BleApp(BleGui, BleConnDevice):
+class BleApp(motion_id = None):
     def __init__(self):
+        self.__motion_id = motion_id
+        if motion_id != None:
+            self.recording = False
+            self.__recording_lock = threading.Lock()
+            self.ble_file = BleFile(motion_id)
+        else:
+            self.ble_file = None
         self.gui = BleGui()
-        self.ble = BleConnDevice(self.gui.ui)
+        self.ble = BleConnDevice(self.gui.ui, self.ble_file)
         self.scan_thread = 0
         self.connectionThread = None
         self.selectedDevice = None
@@ -34,7 +42,7 @@ class BleApp(BleGui, BleConnDevice):
         if True == self.ble.is_connected():
             print("Disconnect first.")
             return
-        
+
         if False == self.ble.is_scanning():
             self.gui.ui.pushButton_Scan.setStyleSheet("background-color: Green")
             self.__execute_parallel(self.ble.action_scan_start,"Th_ScanStart", parameter={5})
@@ -73,7 +81,7 @@ class BleApp(BleGui, BleConnDevice):
         else:
             # Stop streaming first.
             if self.stream_enabled:
-                self.action_stream_stop()
+                self.ble.action_stream_stop()
             self.__execute_parallel(self.ble.action_connection_disconnect, "Th_Disconnect")
             self.ble.connection_addr = None
             self.ble.connection_name = None
@@ -95,6 +103,11 @@ class BleApp(BleGui, BleConnDevice):
         else:
             print("Not connected!")
 
+    def __ble_app_btn_save_clicked_event(self):
+        if self.ble_file != None:
+            with self.__recording_lock:
+                self.recording = not self.recording
+
     def __ble_app_btn_inference_clicked_event(self):
         self.inference != self.inference
 
@@ -104,8 +117,9 @@ class BleApp(BleGui, BleConnDevice):
         self.gui.ui.pushButton_Connect.clicked.connect(self.__ble_app_btn_connect_clicked_event)
         self.gui.ui.pushButton_Disconnect.clicked.connect(self.__ble_app_btn_disconnect_clicked_event)
         self.gui.ui.pushButton_Stream.clicked.connect(self.__ble_app_btn_stream_clicked_event)
+        self.gui.ui.pushButton_Save.clicked.connect(self.__ble_app_btn_save_clicked_event)
         self.gui.ui.pushButton_Inference.clicked.connect(self.__ble_app_btn_inference_clicked_event)
-        
+
         """QListWidget Signal connection configuration"""
         self.gui.ui.BleDevicelistWidget.currentItemChanged.connect(self.__ble_app_current_item_set)
 
@@ -121,7 +135,25 @@ def signal_handler(sig, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 
-ble_app = BleApp()
+is_training = None
+while True:
+    print("Training or Not!(Y/N)?")
+    is_training = input()
+    if is_training == 'y' or is_training == 'Y' or is_training == 'N' or is_training == 'n':
+        break
+    else:
+        print("Invalid Input!")
+
+motion_id = None
+if is_training == 'Y' or is_training == 'y':
+    while True:
+        motion_id = input()
+        if motion_id == 'L' or motion_id =='R' or motion_id=='D' or motion_id=='U':
+            break
+        else:
+            print("Invalid Motion Training")
+
+ble_app = BleApp(motion_id)
 
 # def print_response(response):
 #     print(response.Cmd)
