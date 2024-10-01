@@ -38,6 +38,7 @@ class BleConnDevice:
             self.ui.BleDevicelistWidget.addItem(f"{addr} {name}")
             
     def evt_callback(self, evt_input):
+        print("type",type(evt_input))
         cbTime = datetime.now()
         currentTime = cbTime.strftime("%H:%M:%S")
         print("\n\n[" + str(currentTime) + "] my_evt_callback: " + str(evt_input))

@@ -13,7 +13,8 @@ class BleFile:
     def generate_filename(self):
         # Generate a filename with the current time of the day
         current_time = datetime.now().strftime("%H-%M-%S")
-        return f"{current_time}.xlsx"
+        filename = current_time+"_DataSet"
+        return f"{filename}.xlsx"
 
     def open_excel_file(self):
         try:
