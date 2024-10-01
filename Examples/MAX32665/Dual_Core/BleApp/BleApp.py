@@ -5,8 +5,8 @@ from BleGui import BleGui
 import threading
 from BleFile import BleFile
 
-class BleApp(motion_id = None):
-    def __init__(self):
+class BleApp():
+    def __init__(self,motion_id = None):
         self.__motion_id = motion_id
         if motion_id != None:
             self.recording = False
@@ -137,8 +137,7 @@ signal.signal(signal.SIGINT, signal_handler)
 
 is_training = None
 while True:
-    print("Training or Not!(Y/N)?")
-    is_training = input()
+    is_training = input("Training or Not!(Y/N)?")
     if is_training == 'y' or is_training == 'Y' or is_training == 'N' or is_training == 'n':
         break
     else:
@@ -147,7 +146,7 @@ while True:
 motion_id = None
 if is_training == 'Y' or is_training == 'y':
     while True:
-        motion_id = input()
+        motion_id = input("Motion Flag! (\'L\', \'R\', \'D\',\'U\')")
         if motion_id == 'L' or motion_id =='R' or motion_id=='D' or motion_id=='U':
             break
         else:

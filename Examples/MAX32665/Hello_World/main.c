@@ -37,12 +37,13 @@
 /***** Globals *****/
 
 /***** Functions *****/
-
+#include "mxc_sys.h"
 // *****************************************************************************
 int main(void)
 {
     int count = 0;
-
+    MXC_SYS_Clock_Select(MXC_SYS_CLOCK_HIRC8);
+    
     printf("Hello World!\n");
 
     while (1) {
