@@ -7,8 +7,10 @@ from MainGui import Ui_MainWindow
 from PyQt5.QtWidgets import QApplication, QTableWidget, QListWidget, QPushButton, QVBoxLayout, QWidget
 from bleuio_lib.bleuio_funcs import BleuIO
 from BleFile import BleFile
+from BleParser import BleParser
+import threading
 
-class BleConnDevice:
+class BleConnDevice(BleParser):
     def __init__(self, ui:Ui_MainWindow = None, file:BleFile = None):
         self.connection_response = None
         self.connection_name = None
@@ -19,9 +21,26 @@ class BleConnDevice:
         self.ui = ui
         self.file = file
         self.__static_data_handler_id = "1502"
+
+        self.__sensor_data_lock = None
+        self.__sensor_thread_active = False
+        self.__sensor_data_thread = None
+        self.__sensor_data_buffer = []
     
     def __str__(self):
         return f"BtConn(name={self.connection_name}, addr={self.connection_addr})"
+
+    def thread_sensor_data_collection(self):
+        current_pack = None
+        while self.__sensor_thread_active:
+            if 0 != len(self.__sensor_data_buffer):
+                with self.__sensor_data_lock:
+                    current_pack = self.__sensor_data_buffer.pop(0)
+                data_packet = self.parse_hex(current_pack)
+                self.file.write_packet(data_packet["timestamp"],data_packet["x_val"], data_packet["y_val"],data_packet["z_val"])
+
+        self.__sensor_data_lock = None
+        self.__sensor_thread_active = False
 
     def evt_scan_callback(self, scan_input):
         json_list_element = scan_input[0]
@@ -38,10 +57,12 @@ class BleConnDevice:
             self.ui.BleDevicelistWidget.addItem(f"{addr} {name}")
             
     def evt_callback(self, evt_input):
-        print("type",type(evt_input))
-        cbTime = datetime.now()
-        currentTime = cbTime.strftime("%H:%M:%S")
-        print("\n\n[" + str(currentTime) + "] my_evt_callback: " + str(evt_input))
+        json_str = self.load_input(evt_input)
+        if None != json_str:
+            handle_id = self.get_evt_handle(json_str)
+            if None != handle_id and "1502" == handle_id:
+                with self.__sensor_data_lock:
+                    self.__sensor_data_buffer.append(self.get_hex_value())
 
     def init(self):
         self.dongle = BleuIO()
@@ -72,7 +93,7 @@ class BleConnDevice:
 
         # Hide ascii values from notification/indication/read responses.
         # We need only hex values to parse them.
-        self.dongle.ata(True)
+        self.dongle.ata(False)
         time.sleep(0.5)
 
         # Disable automatic discovery of services after connection.
@@ -94,10 +115,19 @@ class BleConnDevice:
         
 
     def action_stream_start(self):
+        # Initialize sensor buffer and lock mechanism
+        self.__sensor_data_lock = threading.Lock()
+        self.__sensor_data_buffer.clear()
+        self.__sensor_thread_active = True
+        
         # Set up connection parameters
         print("Updating connection parameters!")
         self.dongle.at_connparam(intv_min ="24", intv_max ="24", slave_latency = "3", sup_timeout = "3")
         time.sleep(1)
+
+        # Initialize data parser thread before notification reading.     
+        self.__sensor_data_thread = threading.Thread(function = self.thread_sensor_data_collection)
+        self.__sensor_data_thread.start()
 
         print("Enabling notification for", self.__static_data_handler_id)
         self.dongle.at_set_noti(self.__static_data_handler_id)
@@ -105,6 +135,8 @@ class BleConnDevice:
     
     def action_stream_stop(self):
         self.dongle.at_clearnoti(self.__static_data_handler_id)
+        self.__sensor_thread_active = False
+        self.__sensor_data_thread.join()
 
     def is_connected(self):
         return self.dongle.status.isConnected

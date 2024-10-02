@@ -28,7 +28,7 @@ class BleFile:
             workbook.save(self.filename)
             return workbook
     
-    def write_packet(self, timestamp, x_val, y_val, z_val):
+    def write_packet(self, timestamp:float, x_val:int, y_val:int, z_val:int):
         # Write a packet to the current row
         self.sheet.cell(row=self.current_row, column=self.current_packet * 4 - 3, value=timestamp)
         self.sheet.cell(row=self.current_row, column=self.current_packet * 4 - 2, value=x_val)

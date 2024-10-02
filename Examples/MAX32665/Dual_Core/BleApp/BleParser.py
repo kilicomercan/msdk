@@ -1,6 +1,6 @@
 import json
 
-class Parser:
+class BleParser:
     def __init__(self):
         """
         Initialize the parser with the input data.
@@ -10,17 +10,17 @@ class Parser:
         self.parsed_data = None
 
     def load_input(self,input_data):
-        self.data = input_data
-
-    def parse(self):
-        """
-        Parses the string data in the input and converts it into a dictionary.
-        """
-        # Extract the string from the list and convert it to a dictionary using json.loads
-        try:
-            self.parsed_data = json.loads(self.data[0])
-        except json.JSONDecodeError:
-            raise ValueError("Invalid JSON format")
+        input_str = str(input_data[0])
+        evt_index = input_str.find("\"evt\":")
+        if evt_index:
+            cleaned_str = '{'+input_str[evt_index:]
+            try:
+                json_str = json.loads(cleaned_str)
+                return json_str
+            except:
+                return None
+        else:
+            return None
 
     def parse_hex(self):
         """
@@ -65,17 +65,6 @@ class Parser:
 
         # Combine int1 and int2 to form the float
         combined_float = int1 + decimal_part
-    def get_se_value(self):
-        """
-        Returns the 'SE' or similar key value from the parsed data.
-        :return: The value of 'SE', 'R', or similar key, if present.
-        """
-        if "SE" in self.parsed_data:
-            return self.parsed_data["SE"]
-        elif "R" in self.parsed_data:
-            return self.parsed_data["R"]
-        else:
-            return None
 
     def get_evt_action(self):
         """
@@ -87,13 +76,13 @@ class Parser:
         else:
             return None
 
-    def get_evt_handle(self):
+    def get_evt_handle(self, json_str):
         """
         Returns the 'handle' from the 'evt' key in the parsed data, if present.
         :return: Handle value in 'evt', if present.
         """
-        if "evt" in self.parsed_data and "handle" in self.parsed_data["evt"]:
-            return self.parsed_data["evt"]["handle"]
+        if "evt" in json_str and "handle" in json_str["evt"]:
+            return json_str["evt"]["handle"]
         else:
             return None
 
@@ -120,28 +109,11 @@ class Parser:
         else:
             print("No hex value found to store.")
 
-# Example usage
-if __name__ == "__main__":
-    # Input examples
-    variable1 = ['{"SE":35,"evt":{"action":"scan completed"}}']
-    variable2 = ['{776:"0000","evt":{"handle":"1503","writeStatus":0}}']
-    variable3 = ['{777:"0000","evt":{"handle":"1502","hex":"0x0114000000400C0000270009404681","len":15}}']
-    variable4 = ['{"R":24,"evt":{"action":"scanning"}}']
-
-    # Initialize and parse each variable
-    parser = Parser()
-    parser.load_input(variable1)
-    parser.parse()
-    print("SE Value:", parser.get_se_value())  # Example for SE/R value
-    print("Action:", parser.get_evt_action())  # Example for evt action
-
-    parser = Parser()
-    parser.load_input(variable3)
-    parser.parse()
-    handle_id = parser.get_evt_handle()
-    if handle_id == "1502":
-        hex_val = parser.get_hex_value()
-        print("Hex Value:", parser.get_hex_value())  # Extract hex value
-
-    parser.store_hex_to_file()  # Store hex value in file
+ble_parser = BleParser()
+ble_parser.load_input(['{777:"0000","evt":{"handle":"1502","hex":"0x0114000000400C0000270009404681","len":"15"}}'])
+if 1 == ble_parser.parse():
+    handle_id =ble_parser.get_evt_handle()
+    if "1502" == handle_id:
+        hex_str = ble_parser.get_hex_value()
+        print(ble_parser.parse_hex())
 

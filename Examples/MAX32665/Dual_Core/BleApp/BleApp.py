@@ -127,7 +127,6 @@ import time
 import sys
 import signal
 
-
 def signal_handler(sig, frame):
     print('You pressed Ctrl+C!')
     ble_app.dongle.at_gapdisconnectall()
