@@ -45,7 +45,7 @@ int __initialize_mxc_spi(adxl_363_spi_t spi_conf, adxl_363_controller_t adxl_con
     return MXC_SPI_Init(spi, 1, 0, 1, 0, spi_conf.spi_speed, spi_conf.spi_pins);
 }
 
-int16_t __adxl363_read_axis_data(uint8_t lsig_addr, uint8_t msig_addr, int *err)
+uint16_t __adxl363_read_axis_data(uint8_t lsig_addr, uint8_t msig_addr, int *err)
 {
     int ret_val = 0;
     uint8_t most_sig = 0;
@@ -77,9 +77,9 @@ void __reset_variables(void)
     return;
 }
 
-int adxl363_axis_read(int16_t *axis_data, adxl_axis_t axis_id)
+int adxl363_axis_read(uint16_t *axis_data, adxl_axis_t axis_id)
 {
-    int16_t local_axis_val = 0;
+    uint16_t local_axis_val = 0;
     int ret_val = 0;
 
     if (axis_id == X_AXIS) {
@@ -157,7 +157,9 @@ int adxl363_fifo_read(uint8_t *buff, uint16_t sample_count)
 {
     int ret_val = 0;
     int transaction_size = 0;
-
+    uint16_t axis_dataX = 0;
+    uint16_t axis_dataY = 0;
+    uint16_t axis_dataZ = 0;
     if (sample_count < 0x201 || NULL != buff) {
         //Each sample is 2 bytes. So, multiply by 2.
         transaction_size = sample_count * 2;
@@ -172,9 +174,19 @@ int adxl363_fifo_read(uint8_t *buff, uint16_t sample_count)
             read_fifo_req.rxLen = read_fifo_req.txLen;
             ret_val = MXC_SPI_MasterTransaction(&read_fifo_req);
             if (ret_val == 0) {
-                memcpy(buff, adxl_363_fifo_rx_buff + 1, transaction_size);
+                int i = 0;
+                // printf("0x");
+                // for(;i<transaction_size+1;i++){
+                //     printf("%.2x",adxl_363_fifo_rx_buff[i]);
+                // }
+                // printf("\r\n");
+                memcpy(buff, (uint8_t*)&adxl_363_fifo_rx_buff[1], transaction_size);
             }
-            memset(adxl_363_fifo_rx_buff, 0, ADXL_363_FIFO_RX_BUFF_SIZE);
+            // memset(adxl_363_fifo_rx_buff, 0, ADXL_363_FIFO_RX_BUFF_SIZE);
+            // adxl363_axis_read(&axis_dataX, X_AXIS);
+            // adxl363_axis_read(&axis_dataY, Y_AXIS);
+            // adxl363_axis_read(&axis_dataZ, Z_AXIS);
+            // printf("Reg:0x%.4x%.4x%.4X\r\n",axis_dataY,axis_dataZ,axis_dataX);
         }
     } else {
         ret_val = -3;

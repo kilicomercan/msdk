@@ -25,7 +25,7 @@ int test_sample_set_read(int read_sample_set_count)
 
     /* Configure controller parameters. */
     controller.odr = ADXL_363_ODR_100;
-    controller.range = ADXL_363_RANGE_8G;
+    controller.range = ADXL_363_RANGE_2G;
 
     /* Configure SPI parameters. */
     spi_cfg.spi_id = 0;
@@ -74,15 +74,17 @@ int test_sample_set_read(int read_sample_set_count)
     adxl363_fifo_enable_mode(ADXL_363_REG_FIFO_CTL_MODE_STREAM);
     adxl363_enable_measurement(1);
     int initial_pack = 1;
-    while (1) {
+    while (read_sample_set_count--) {
         adxl363_fifo_read_sample_set((uint8_t*)read_buff, 0);
         if (initial_pack != 1) {
             sample_set_pack = adxl363_parse_sample_set(read_buff);
-            MXC_RTC_GetTime(&sample_set_pack.sec, &sample_set_pack.subsec);
-            send_pack_to_host(&sample_set_pack);
+            printf("0x%.4x%.4x%.4x\r\n", read_buff[0],read_buff[1], read_buff[2]);
+            // while(E_NO_ERROR !=MXC_RTC_GetTime(&sample_set_pack.sec, &sample_set_pack.subsec)){}
+            // send_pack_to_host(&sample_set_pack);
         } else {
             initial_pack = 0;
         }
         MXC_Delay(MXC_DELAY_MSEC(10));
     }
+    adxl363_shutdown();
 }

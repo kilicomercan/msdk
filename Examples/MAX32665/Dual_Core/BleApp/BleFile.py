@@ -1,14 +1,17 @@
 import openpyxl
 from datetime import datetime
-
+import threading
 class BleFile:
-    def __init__(self, mark_sign ='L'):
-        self.filename = self.generate_filename()
-        self.workbook = self.open_excel_file()
-        self.sheet = self.workbook.active
+    def __init__(self):
+        self.mark_sign = 'None'
+        self.mark_enable = False
+        self.filename = ""
+        self.workbook = None
+        self.sheet = None
         self.current_row = 1
-        self.current_packet = 1
-        self.mark_sign = mark_sign
+        self.__current_packet = 1
+        self.is_recording = False
+        self.file_lock = threading.Lock()
 
     def generate_filename(self):
         # Generate a filename with the current time of the day
@@ -28,24 +31,47 @@ class BleFile:
             workbook.save(self.filename)
             return workbook
     
-    def write_packet(self, timestamp:float, x_val:int, y_val:int, z_val:int):
+    def write_packet(self,flag:int, timestamp:float, x_val:int, y_val:int, z_val:int):
         # Write a packet to the current row
-        self.sheet.cell(row=self.current_row, column=self.current_packet * 4 - 3, value=timestamp)
-        self.sheet.cell(row=self.current_row, column=self.current_packet * 4 - 2, value=x_val)
-        self.sheet.cell(row=self.current_row, column=self.current_packet * 4 - 1, value=y_val)
-        self.sheet.cell(row=self.current_row, column=self.current_packet * 4, value=z_val)
+        self.sheet.cell(row=self.current_row, column=self.__current_packet * 5 - 4, value = flag)
+        self.sheet.cell(row=self.current_row, column=self.__current_packet * 5 - 3, value=timestamp)
+        self.sheet.cell(row=self.current_row, column=self.__current_packet * 5 - 2, value=x_val)
+        self.sheet.cell(row=self.current_row, column=self.__current_packet * 5 - 1, value=y_val)
+        self.sheet.cell(row=self.current_row, column=self.__current_packet * 5, value=z_val)
         
         # If it's the last packet in the row, write the mark sign
-        if self.current_packet == 100:
-            self.sheet.cell(row=self.current_row, column=401, value=self.mark_sign)
+        if 0 == self.__current_packet % 100:
+            if self.mark_enable:
+                self.sheet.cell(row=self.current_row, column=501, value=self.mark_sign)
             self.current_row += 1
-            self.current_packet = 1
+            self.__current_packet = 1
         else:
-            self.current_packet += 1
+            self.__current_packet += 1
 
         # Save the workbook after writing each packet
-        self.workbook.save(self.filename)
+        # self.workbook.save(self.filename)
     
+    def create_new_file(self):
+        self.filename = self.generate_filename()
+        self.workbook = self.open_excel_file()
+        self.sheet = self.workbook.active
+        self.current_row = 1
+        self.__current_packet = 1
+
+    def conf_mark_sign(self, mark_enable = False, mark_sign = None ):
+        self.mark_enable = mark_enable
+        self.mark_sign = mark_sign
+
+    def close_file(self):
+        if self.workbook != None:
+            self.workbook.save(self.filename)
+        self.mark_sign = 'None'
+        self.mark_enable = False
+        self.filename = ""
+        self.workbook = None
+        self.sheet = None
+        self.current_row = 1
+        self.__current_packet = 1
 
     def __self_test(self):
         for i in range(200):  # Example to write 200 packets

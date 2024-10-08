@@ -33,7 +33,7 @@ int init_sensor(void){
     
     adxl_363_controller_t controller = {0};
     controller.odr = SENSOR_ODR;
-    controller.range = ADXL_363_RANGE_8G;
+    controller.range = ADXL_363_RANGE_2G;
 
     adxl_363_spi_t spi_cfg = {0};
     spi_cfg.spi_ssid = 0;
@@ -78,9 +78,6 @@ int init_sensor(void){
         adxl363_shutdown();
         return E_INVALID;
     }
-
-    adxl363_fifo_enable_mode(ADXL_363_REG_FIFO_CTL_MODE_STREAM);
-    adxl363_enable_measurement(1);
 
     return ret_val;
 }
