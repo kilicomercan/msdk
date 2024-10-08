@@ -235,7 +235,7 @@ typedef enum adxl_axis_t {
 #endif
 
 /** API Declarations */
-int adxl363_axis_read(int16_t * axis_data, adxl_axis_t axis_id);
+int adxl363_axis_read(uint16_t * axis_data, adxl_axis_t axis_id);
 int adxl363_enable_measurement(uint8_t enable);
 int adxl363_fifo_enable_mode(uint8_t mode);
 int adxl363_fifo_get_sample_count(uint16_t *sample_count);

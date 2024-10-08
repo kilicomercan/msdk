@@ -31,7 +31,7 @@
 /**************************************************************************************************
   Macros
 **************************************************************************************************/
-#define DEAULT_TIMER_PERIOD ((1000/SHARED_SENSOR_ODR) * SENSOR_IND_PACK_COUNT)
+#define DEAULT_TIMER_PERIOD (((1000/SHARED_SENSOR_ODR) * SENSOR_IND_PACK_COUNT)+1)
 /**************************************************************************************************
   Local Variables
 **************************************************************************************************/
@@ -232,10 +232,11 @@ static mcsConn_t *cgmpsFindNextToSend(uint8_t cccIdx)
 
 // static uint16_t data_prt[3];
 static int counter_test = 0;
+static uint8_t data_set_core1[SENSOR_DATA_TRANSFER] = {0};
 void McsI2CTimerExpired(wsfMsgHdr_t *pMsg)
 {
     mcsConn_t *pConn;
-    static uint8_t data_set_core1[SENSOR_DATA_TRANSFER] = {0};
+    memset(data_set_core1, 0, SENSOR_DATA_TRANSFER);
     while(MXC_SEMA_GetSema(PACK_READY_SEM_ID));
     if(ready_flag){
         memcpy(data_set_core1, &sensor_pack_buffer[last_send_pack_idx*SENSOR_DATA_TRANSFER], SENSOR_DATA_TRANSFER);
@@ -249,9 +250,9 @@ void McsI2CTimerExpired(wsfMsgHdr_t *pMsg)
         last_send_pack_idx %= (SHARED_SENSOR_ODR/SENSOR_IND_PACK_COUNT);
     }else{
         MXC_SEMA_FreeSema(PACK_READY_SEM_ID);
-        memset(data_set_core1, 0, SENSOR_DATA_TRANSFER);
     }
 
+    // printf("B:0x%.2x%.2x%.2x%.2x%.2x%.2x\r\n",data_set_core1[9],data_set_core1[10],data_set_core1[11],data_set_core1[12],data_set_core1[13],data_set_core1[14]);
     if (mcsNoConnActive() == FALSE)
     {
         /* find next connection to send (note ccc idx is stored in timer status) */

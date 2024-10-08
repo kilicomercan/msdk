@@ -9,6 +9,29 @@ class BleParser:
         self.data = None
         self.parsed_data = None
 
+    def __parse_val(self, val):
+        """val is integer apply bit manupilation to it to determine type of the data"""
+        type = (val >> 14) & 3
+        sign = (val >> 12) & 3
+        raw_data = (val & 0xfff)
+
+        return type, sign, raw_data
+    
+    def sensor_data_parser(self, sensor_data_pack):
+        """
+            type of sensor_data_pack input
+                "flag": flag,
+                "timestamp":timestamp,
+                "x_val": val1,
+                "y_val": val2,
+                "z_val": val3
+        """
+        keys = ["x_val", "y_val", "z_val"]
+        result = []
+        for i in keys:
+            result.append(self.__parse_val(sensor_data_pack[i]))
+        return result
+
     def load_input(self,input_data):
         input_str = str(input_data[0])
         evt_index = input_str.find("\"evt\":")
@@ -21,8 +44,16 @@ class BleParser:
                 return None
         else:
             return None
+        
+    def __get_type_val(self, value):
+            val = value & 0xffff  
+            val_type = (val >> 14) & 0b11
+            val = val & 0x0fff
+            if val & 0x800:
+                val -= 1<<12
+            return [val_type, val]
 
-    def parse_hex(self):
+    def parse_hex(self, hex_value):
         """
         Parses the hex value according to the provided structure.
         1st byte = flag
@@ -33,22 +64,35 @@ class BleParser:
         14-15 bytes = z_val
         :return: A dictionary with parsed hex values.
         """
-        hex_value = self.get_hex_value()
         if hex_value:
             # Remove "0x" prefix from the hex string
             hex_value = hex_value[2:]
 
             # Ensure the hex string is of the correct length (30 characters = 15 bytes)
             if len(hex_value) != 30:
-                raise ValueError("Hex value does not have the correct length (15 bytes).")
-
+                print("Hex value does not have the correct length (15 bytes).")
+                return None
+            
             # Parse the individual components
-            flag = int(hex_value[0:2], 16)  # 1st byte (2 hex chars)
-            seconds = int(hex_value[2:10], 16)  # 2nd to 5th bytes (8 hex chars)
-            subseconds = int(hex_value[10:18], 16)  # 6th to 9th bytes (8 hex chars)
-            x_val = int(hex_value[18:22], 16)  # 10th to 11th bytes (4 hex chars)
-            y_val = int(hex_value[22:26], 16)  # 12th to 13th bytes (4 hex chars)
-            z_val = int(hex_value[26:30], 16)  # 14th to 15th bytes (4 hex chars)
+            flag = int(hex_value[0:2], 16)  
+            seconds = hex_value[8:10] + hex_value[6:8] +hex_value[4:6] + hex_value[2:4]
+            seconds = int(seconds, 16) 
+
+            subseconds = hex_value[16:18] + hex_value[14:16] + hex_value[12:14] + hex_value[10:12]  
+            subseconds = int(subseconds, 16) 
+            x_val = None
+            y_val = None 
+            z_val = None
+            values = [int(hex_value[20:22] + hex_value[18:20],16), int(hex_value[24:26] +hex_value[22:24],16), int(hex_value[28:30] + hex_value[26:28],16)]
+            for val in values:
+                val_type, real_val = self.__get_type_val(val)
+                if val_type == 0b00:
+                    x_val = real_val
+                elif val_type == 0b01:
+                    y_val = real_val
+                else:
+                    z_val = real_val
+
             timestamp = seconds + (subseconds / (10**len(str(subseconds))))
             # Return parsed values in a dictionary
             return {
@@ -60,19 +104,14 @@ class BleParser:
             }
         else:
             raise ValueError("No hex value found to parse.")
-    
-        decimal_part = int2 / (10 ** len(str(int2)))
 
-        # Combine int1 and int2 to form the float
-        combined_float = int1 + decimal_part
-
-    def get_evt_action(self):
+    def get_evt_action(self, json_str):
         """
         Returns the 'action' from the 'evt' key in the parsed data, if present.
         :return: Action value in 'evt', if present.
         """
-        if "evt" in self.parsed_data and "action" in self.parsed_data["evt"]:
-            return self.parsed_data["evt"]["action"]
+        if "evt" in json_str and "action" in json_str["evt"]:
+            return json_str["evt"]["action"]
         else:
             return None
 
@@ -81,18 +120,21 @@ class BleParser:
         Returns the 'handle' from the 'evt' key in the parsed data, if present.
         :return: Handle value in 'evt', if present.
         """
-        if "evt" in json_str and "handle" in json_str["evt"]:
-            return json_str["evt"]["handle"]
+        if "evt" in json_str:
+            if "handle" in json_str["evt"]:
+                return json_str["evt"]["handle"]
+            else:
+                return None
         else:
             return None
 
-    def get_hex_value(self):
+    def get_hex_value(self, json_str):
         """
         Returns the 'hex' value from the 'evt' key in the parsed data, if present.
         :return: Hex value in 'evt', if present.
         """
-        if "evt" in self.parsed_data and "hex" in self.parsed_data["evt"]:
-            return self.parsed_data["evt"]["hex"]
+        if "evt" in json_str and "hex" in json_str["evt"]:
+            return json_str["evt"]["hex"]
         else:
             return None
 
@@ -109,11 +151,14 @@ class BleParser:
         else:
             print("No hex value found to store.")
 
-ble_parser = BleParser()
-ble_parser.load_input(['{777:"0000","evt":{"handle":"1502","hex":"0x0114000000400C0000270009404681","len":"15"}}'])
-if 1 == ble_parser.parse():
-    handle_id =ble_parser.get_evt_handle()
-    if "1502" == handle_id:
-        hex_str = ble_parser.get_hex_value()
-        print(ble_parser.parse_hex())
+# ble_parser = BleParser()
+# json_str = ble_parser.load_input(['{777:"0000","evt":{"handle":"1502","hex":"0x01C60000004B0C0000F67FCF84CF3F","len":15}}'])
+
+# handle_id = ble_parser.get_evt_handle(json_str)
+# if "1502" == handle_id:
+#     hex_str = ble_parser.get_hex_value(json_str)
+#     if hex_str != None:
+#         first_process_parsing = ble_parser.parse_hex(hex_str)
+#         print(first_process_parsing)
+
 

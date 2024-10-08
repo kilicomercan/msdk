@@ -71,14 +71,17 @@ void fw_loop(void){
     int read_set_count = 0;
     MXC_RTC_Init(0,0);
     MXC_RTC_Start();
+    uint16_t sensor_data_buff[3] = {0};
     uint8_t data_set[SENSOR_SET_LENGTH] = {0};
-    int delay = (1000/SHARED_SENSOR_ODR);
+    int delay = (1000/SHARED_SENSOR_ODR+1);
+    adxl363_fifo_enable_mode(ADXL_363_REG_FIFO_CTL_MODE_STREAM);
+    adxl363_enable_measurement(1);
     while (1) {
-
         // Clean local buffers in stack.
         memset(data_set, 0, sizeof(data_set));
+        memset(sensor_data_buff, 0, sizeof(sensor_data_buff));
         // Reading sample set from sensor without temperature value.
-        if(E_NO_ERROR == adxl363_fifo_read_sample_set(&data_set[1+TIMESTAMP_LENGHT], FALSE)){
+        if(E_NO_ERROR == adxl363_fifo_read_sample_set((uint8_t*)sensor_data_buff, FALSE)){
                 #if TRAINING_ENABLE 
                 if(MXC_GPIO_InGet(TRAINING_PORT, TRAINING_PIN)){
                     data_set[0] = 1;
@@ -88,13 +91,17 @@ void fw_loop(void){
                 #else
                     data_set[0] = 0;
                 #endif
-                
-                // uint32_t* sec = (uint32_t*)&data_set[1];
+                // printf("S:0x%.4x%.4x%.4x\r\n",sensor_data_buff[0],sensor_data_buff[1],sensor_data_buff[2]);
+                // printf("US:0x%.8x\r\n",prt);
+                memcpy((void*)&data_set[9], (uint8_t*)sensor_data_buff, 6);
+                // uint32_t* sec = (uint\32_t*)&data_set[1];
                 // uint32_t* sub_sec = (uint32_t*)&data_set[5];
                 #if TIMESTAMP_LENGHT != 0
-                while(E_NO_ERROR != MXC_RTC_GetTime((uint32_t*)&data_set[1], (uint32_t*)&data_set[5])){}
+                while(E_NO_ERROR != MXC_RTC_GetTime(&data_set[1], &data_set[5])){}
                 #endif
-                
+                // printf("%d.%d\r\n",*((uint32_t*)&(data_set[1])),*((uint32_t*)&(data_set[5])));
+
+                // printf("P:0x%.2x%.2x%.2x%.2x%.2x%.2x\r\n\r\n",data_set[9],data_set[10],data_set[11],data_set[12],data_set[13],data_set[14]);
                 // printf("%d. %d\r\n",*sec, *sub_sec);
                 while(MXC_SEMA_GetSema(PACK_READY_SEM_ID));
                 memcpy(&sensor_pack_buffer[read_set_count*(SENSOR_SET_LENGTH)], data_set, sizeof(data_set));
@@ -103,12 +110,7 @@ void fw_loop(void){
                 /* Increase the length of the whole packet from device to host */
                 read_set_count+=1;
                 read_set_count %= SHARED_SENSOR_ODR;
-                // uint16_t* ptr = &data_set[1];
-                // for(;counter_test < 3;counter_test++){
-                //     printf("%d ", *ptr);
-                //     ptr++;
-                // }
-                // counter_test = 0;
+
         }else{
             printf("Set read fail\r\n");
         }
@@ -129,6 +131,17 @@ int main_core1(void)
         printf("Button initialization SUCCESS\r\n");
     }
 #endif
+
+    // test_sample_set_read(1000000);
+    
+    // printf("AXIS READ STARTED\r\n");
+    // test_adxl363_read_axis();
+    // printf("AXIS READ ENDED\r\n");
+
+    // printf("Set READ STARTED\r\n");
+    // test_sample_set_read(100000000);
+    // printf("Set READ ENDED\r\n");
+    // while(1){}
     if(E_NO_ERROR != init_sensor()){
         printf("ADXL_363 sensor initialization error\r\n");
         return -1;
