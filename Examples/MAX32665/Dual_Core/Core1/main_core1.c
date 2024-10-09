@@ -57,9 +57,9 @@ static int __init_buttons(void){
     mxc_gpio_cfg_t training_pin = {0};
     training_pin.port = TRAINING_PORT;
     training_pin.mask = TRAINING_PIN;
-    training_pin.pad = MXC_GPIO_PAD_PULL_UP;
+    training_pin.pad = MXC_GPIO_PAD_NONE;
     training_pin.func = MXC_GPIO_FUNC_IN;
-    training_pin.vssel = MXC_GPIO_VSSEL_VDDIO;
+    training_pin.vssel = MXC_GPIO_VSSEL_VDDIOH;
     training_pin.drvstr = MXC_GPIO_DRVSTR_0;
 
     return MXC_GPIO_Config(&training_pin);
