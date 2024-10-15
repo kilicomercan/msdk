@@ -162,14 +162,16 @@ static const uint8_t mcsAppAdvDataDisc[] = {
 /*! scan data, discoverable mode */
 static const uint8_t mcsAppScanDataDisc[] = {
     /*! device name */
-    7,                      /*! length */
+    15,                      /*! length */
     DM_ADV_TYPE_LOCAL_NAME, /*! AD type */
-    'B',
+    'M',
+    'o',
     't',
-    'C',
+    'i',
     'o',
     'n',
-    'n'
+    'D',
+    'e','t','e','c','t','o','r'
 };
 
 /*! Mcs measurement configuration */

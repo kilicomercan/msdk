@@ -38,7 +38,7 @@ VPATH += Core0/services
 IPATH += Core0/profiles/mcs
 VPATH += Core0/profiles/mcs
 
-override ADV_NAME = BtConn
+override ADV_NAME = MotionDetector
 PROJ_CFLAGS += -DADV_NAME=\"$(ADV_NAME)\"
 PROJ_CFLAGS += -DINIT_SECURITY=FALSE
 TRACE = 1

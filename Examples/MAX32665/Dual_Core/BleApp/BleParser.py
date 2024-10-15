@@ -93,7 +93,8 @@ class BleParser:
                 else:
                     z_val = real_val
 
-            timestamp = seconds + (subseconds / (10**len(str(subseconds))))
+            timestamp = seconds + round(subseconds / 4096, 3)
+            # timestamp = seconds + (subseconds / (10**len(str(subseconds))))
             # Return parsed values in a dictionary
             return {
                 "flag": flag,

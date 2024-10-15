@@ -5,7 +5,6 @@ from BleGui import BleGui
 import threading
 from BleFile import BleFile
 from BleBuff import BleBuff
-from typing import List
 
 class BleApp():
     def __init__(self, motion_id = 'L'):
@@ -26,15 +25,21 @@ class BleApp():
         self.setup_ble_gui()
         
         """Initialize BLE dongle at this point"""
-        self.ble.init()
+        try:
+            self.ble.init()
+        except:
+            self.custom_closeEvent()
+            
 
         """Show GUI Window"""
         self.gui.start_gui()
 
     def custom_closeEvent(self,event):
         # 1. Stop Streaming
-        self.ble.action_stream_stop()
-        time.sleep(1)
+        if self.stream_enabled:
+            self.ble.action_stream_stop()
+            time.sleep(1)
+
         # 2. Stop Save and close event process thread
         if self.ble_file != None:
             with self.ble_file.file_lock:
@@ -57,7 +62,6 @@ class BleApp():
         # Initialize data parser thread before notification reading.     
         self.thread_data_collection = threading.Thread(target=self.__thread_sensor_event_handler, name="Th_EventHandler")
         self.thread_data_collection.start()
-
     def __create_buffers(self):
         self.buffers:list[BleBuff] = []
         # This buffer is for data saving in training mode.
@@ -65,13 +69,13 @@ class BleApp():
 
     def __thread_sensor_event_handler(self):
         current_pack = None
+        # self.motion_started = False
         while self.thread_data_collection_active:
             if 0 != self.buffers[0].len():
                 with self.buffers[0].lock:
                     current_pack = self.buffers[0].pop(0)
-
                 data_packet = self.ble.parse_hex(current_pack)
-                if self.ble_file != None:
+                if self.ble_file.workbook != None:
                     with self.ble_file.file_lock:
                         if self.ble_file.is_recording:
                             self.ble_file.write_packet(data_packet["flag"], data_packet["timestamp"], data_packet["x_val"], data_packet["y_val"], data_packet["z_val"])
@@ -213,28 +217,32 @@ def signal_handler(sig, frame):
     ble_app.dongle.at_gapdisconnectall()
     sys.exit(0)
 
-signal.signal(signal.SIGINT, signal_handler)
-
-is_training = None
-while True:
-    is_training = input("Training or Not!(Y/N)?")
-    if is_training == 'y' or is_training == 'Y' or is_training == 'N' or is_training == 'n':
-        break
-    else:
-        print("Invalid Input!")
-
-motion_id = None
-if is_training == 'Y' or is_training == 'y':
+def main():
+    signal.signal(signal.SIGINT, signal_handler)
+    is_training = None
     while True:
-        motion_id = input("Motion Flag! (\'L\', \'R\', \'D\',\'U\'):")
-        if motion_id == 'L' or motion_id =='R' or motion_id=='D' or motion_id=='U':
+        is_training = input("Training or Not!(Y/N)?")
+        if is_training == 'y' or is_training == 'Y' or is_training == 'N' or is_training == 'n':
             break
         else:
-            print("Invalid Motion Training")
-else:
-    motion_id = "None"
+            print("Invalid Input!")
 
-ble_app = BleApp(motion_id)
+    motion_id = None
+    if is_training == 'Y' or is_training == 'y':
+        while True:
+            motion_id = input("Motion Flag! (\'L\', \'R\', \'D\',\'U\'):")
+            if motion_id == 'L' or motion_id =='R' or motion_id=='D' or motion_id=='U':
+                break
+            else:
+                print("Invalid Motion Training")
+    else:
+        motion_id = "None"
+
+    BleApp(motion_id)
+
+if __name__=="__main__":
+    main()
+   
 
 # def print_response(response):
 #     print(response.Cmd)

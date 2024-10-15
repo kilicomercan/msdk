@@ -12,6 +12,7 @@ class BleFile:
         self.__current_packet = 1
         self.is_recording = False
         self.file_lock = threading.Lock()
+        self.__data_collection_path = "./DataCollection/"
 
     def generate_filename(self):
         # Generate a filename with the current time of the day
@@ -22,13 +23,13 @@ class BleFile:
     def open_excel_file(self):
         try:
             # Open the Excel file with the generated filename
-            workbook = openpyxl.load_workbook(self.filename)
+            workbook = openpyxl.load_workbook(self.__data_collection_path+self.filename)
             print(f"Opened file: {self.filename}")
             return workbook
         except FileNotFoundError:
             print(f"File {self.filename} not found. Creating a new one.")
             workbook = openpyxl.Workbook()
-            workbook.save(self.filename)
+            workbook.save(self.__data_collection_path+self.filename)
             return workbook
     
     def write_packet(self,flag:int, timestamp:float, x_val:int, y_val:int, z_val:int):

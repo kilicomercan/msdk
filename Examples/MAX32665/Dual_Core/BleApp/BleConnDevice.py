@@ -24,7 +24,7 @@ class BleConnDevice(BleParser):
         self.buffers_to_fill = buff
 
     def __str__(self):
-        return f"BtConn(name={self.connection_name}, addr={self.connection_addr})"
+        return f"MotionDetector(name={self.connection_name}, addr={self.connection_addr})"
 
     def evt_scan_callback(self, scan_input):
         json_list_element = scan_input[0]
@@ -33,7 +33,7 @@ class BleConnDevice(BleParser):
         addr = json_string.get("addr")
         print(addr, name)
         """If name is not defined, we don't add it to list. """
-        if name == 'BtConn':
+        if name == 'MotionDetector':
             self.connection_addr = addr
             self.connection_name = name
 
@@ -136,7 +136,7 @@ class BleConnDevice(BleParser):
         print("Is scanning:", str(self.is_scanning()))
 
     def action_connection_connect(self):
-        """Connect to BtConn"""
+        """Connect to MotionDetector"""
         self.dongle.at_gapdisconnectall()
         time.sleep(0.5)
 
@@ -191,7 +191,7 @@ class BleConnDevice(BleParser):
         return self.dongle.status.isScanning
 
     def action_connection_disconnect(self):
-        """Disconnect from BtConn"""
+        """Disconnect from MotionDetector"""
         self.dongle.at_gapdisconnectall()
         counter = 5
         while counter and self.is_connected():
