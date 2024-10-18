@@ -12,7 +12,7 @@ class BleFile:
         self.__current_packet = 1
         self.is_recording = False
         self.file_lock = threading.Lock()
-        self.__data_collection_path = "./DataCollection/"
+        self.__data_collection_path = ""
 
     def generate_filename(self):
         # Generate a filename with the current time of the day

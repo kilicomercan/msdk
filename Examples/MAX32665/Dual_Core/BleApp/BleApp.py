@@ -25,10 +25,10 @@ class BleApp():
         self.setup_ble_gui()
         
         """Initialize BLE dongle at this point"""
-        try:
-            self.ble.init()
-        except:
-            self.custom_closeEvent()
+        # try:
+        self.ble.init()
+        # except:
+        #     self.custom_closeEvent()
             
 
         """Show GUI Window"""

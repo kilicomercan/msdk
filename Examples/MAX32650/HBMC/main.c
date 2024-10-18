@@ -37,8 +37,8 @@
 /* **** Definitions **** */
 
 /* Note: Define only one of these! */
-#define HYPERRAM /* Hyperbus RAM  */
-//#define XCCELABUS /* Xccelabus PSRAM */
+// #define HYPERRAM /* Hyperbus RAM  */
+#define XCCELABUS /* Xccelabus PSRAM */
 
 /* Valid values for chip select are 0 and 1 */
 #define HPB_CS 0
