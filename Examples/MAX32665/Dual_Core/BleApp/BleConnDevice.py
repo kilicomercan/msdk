@@ -27,18 +27,26 @@ class BleConnDevice(BleParser):
         return f"MotionDetector(name={self.connection_name}, addr={self.connection_addr})"
 
     def evt_scan_callback(self, scan_input):
-        json_list_element = scan_input[0]
-        json_string = json.loads(json_list_element)
-        name = json_string.get("name")
-        addr = json_string.get("addr")
-        print(addr, name)
-        """If name is not defined, we don't add it to list. """
-        if name == 'MotionDetector':
-            self.connection_addr = addr
-            self.connection_name = name
+        try:
+            json_list_element = scan_input[0]   
+            json_string = json.loads(json_list_element)
+            name = json_string.get("name")
+            addr = json_string.get("addr")
+            print(addr, name)
+            """If name is not defined, we don't add it to list. """
+            if name == 'MotionDetector':
+                self.connection_addr = addr
+                self.connection_name = name
 
-        if name != None and addr != None:
-            self.ui.BleDevicelistWidget.addItem(f"{addr} {name}")
+            if name == "MotionDetector" and addr != None:
+                self.ui.BleDevicelistWidget.addItem(f"{addr} {name}")
+        except:
+            """ 
+            @note 
+            Clicking scan closes the GUI somehow.
+            So, exception handling added.
+            """
+            pass
             
     def evt_callback(self, evt_input):
         # print(evt_input)
@@ -65,6 +73,7 @@ class BleConnDevice(BleParser):
             else:
                 print(json_str)
         else:
+            print(evt_input)
             print("Invalid data event data to parse")
         
         """
@@ -106,17 +115,15 @@ class BleConnDevice(BleParser):
         self.dongle.at_central()
         time.sleep(0.2)
         self.dongle.at_gapscan()
-        counter = 5
-        while counter and False == self.is_scanning():
-            time.sleep(0.8)
-            counter = counter -1
-        
+        # counter = 5
+        # while counter and False == self.is_scanning():
+        #     time.sleep(0.8)
+        #     counter = counter -1        
         if self.is_scanning() == False:
             print("Fail: Scan Initialization")
         else:
-            self.ui.pushButton_Scan.setStyleSheet("background-color: Green")
+            print("Is scanning: True")
 
-        print("Is scanning:",str(self.is_scanning()))
 
     def action_scan_stop(self):
         self.dongle.at_gapdisconnectall()
