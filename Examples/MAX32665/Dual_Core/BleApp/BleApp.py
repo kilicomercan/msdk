@@ -220,7 +220,6 @@ class BleApp():
 
         if False == self.ble.is_scanning():
             self.__execute_parallel(self.ble.action_scan_start,"Th_ScanStart",False)
-            self.gui.ui.pushButton_Scan.setStyleSheet("background-color: Green")
         else:
             self.__execute_parallel(self.ble.action_scan_stop,"Th_ScanStop", True)                    
             self.gui.ui.BleDevicelistWidget.clear()

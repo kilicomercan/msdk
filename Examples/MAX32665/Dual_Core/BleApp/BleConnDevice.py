@@ -123,6 +123,7 @@ class BleConnDevice(BleParser):
             print("Fail: Scan Initialization")
         else:
             print("Is scanning: True")
+            self.ui.pushButton_Scan.setStyleSheet("background-color: Green")
 
 
     def action_scan_stop(self):
