@@ -217,31 +217,20 @@ void rxCallbackHandler(int par1, int par2) {
                                     .dma = par_dma };
 
 volatile int rxChannel = 0;
-
 void DMA0_TestIRQHandler(void){
     uint32_t flags = MXC_DMA_ChannelGetFlags(rxChannel);
-    if( (flags & ( 1<< 6))){ // check if it is timeout interrupt.
-        MXC_DMA_ChannelClearFlags(rxChannel, flags);
+    if((flags & (1 << 2))){
+        // ctz interrupt
+        // @todo stop the transaction. Channel will be disabled.
+    }else if((flags & ( 1<< 6))){
+        // check if it is timeout interrupt.
         printf("timeo\r\n");
-    }else{
-        printf("diff int\r\n");
     }
+    MXC_DMA_ChannelClearFlags(rxChannel, flags);
 }
 
-/**
- * @note
- * 
- * DMA_CFG.to_period = 1
- * prescaled = 3 
- * fHCLK to timer after scaling = 96'000'000 / 2^24 = 5.72Hz
- * timeout period = (2^24 *(1))/ 5.72 = 2'933'079.7 microseconds = around 3 seconds.
- * 
- * So, our expectation is to get interrupt triggering
- * for timeout for every 3 seconds.
- * 
- */
 static int MXC_UART_TransactionDMA_Config(void){
-    static uint8_t destAddr[100];
+    static uint8_t destAddr[255];
     mxc_dma_regs_t *dma_reg = (mxc_dma_regs_t *)MXC_DMA0;
     MXC_DMA_Init(dma_reg);
 
@@ -251,38 +240,53 @@ static int MXC_UART_TransactionDMA_Config(void){
     }
 
     mxc_dma_ch_regs_t *regs = MXC_DMA_GetCHRegs(rxChannel);
-    regs->cfg &= ~(1 << 31); // ctzien disable.
-    regs->cfg &= ~(1 << 30); // chdien disable.
-    regs->st &= ~(1 << 2);   // ctz_st disable.
+    MXC_DMA_ChannelDisableInt(rxChannel, (MXC_F_DMA_CFG_CTZIEN | MXC_F_DMA_CFG_CHDIEN));
+    MXC_DMA_ChannelClearFlags(rxChannel, (MXC_F_DMA_ST_CTZ_ST | MXC_F_DMA_ST_RLD_ST |
+                                          MXC_F_DMA_ST_BUS_ERR | MXC_F_DMA_ST_TO_ST));
 
-    regs->dst = (uint32_t)destAddr;  // Setting the destination address.
-    regs->cnt = sizeof(destAddr); // Set size of the transfer on channel.
+    mxc_dma_config_t conf = { .ch = rxChannel,
+                              .dstinc_en = 1,
+                              .srcinc_en = 0,
+                              .dstwd = MXC_DMA_WIDTH_BYTE,
+                              .srcwd = MXC_DMA_WIDTH_BYTE,
+                              .reqsel = MXC_DMA_REQUEST_UART0RX };
 
-    regs->cfg |= (4 << 4);   // <reqsel> Choose uart rx as the source.
-    regs->cfg |= (1 << 24);  // <brst> set burst size to 1.
-    regs->cfg &= ~(3 << 2);  // <pri> set pri to highest prio.
-    regs->cfg &= ~(3 << 20); // <dst_width> destination width is 1 byte.
-    regs->cfg |= (1 << 22);  // <dst_inc> enable destination increment.
-    regs->cfg &= ~(3 << 16); // <src_width> source width is 1 byte.
-    regs->cfg &= ~(1 << 18); // <src_inc> to 0.
+    regs->dst = (uint32_t)destAddr;
+    regs->cnt = sizeof(destAddr);
+    mxc_dma_srcdst_t src_dst = {.ch = rxChannel, .dest = destAddr, .len = sizeof(destAddr), .source = NULL};
+    MXC_DMA_ConfigChannel(conf, src_dst);
 
     /* Configuration for timeout interrupt 9.7 */
-    regs->cfg |= (3 << 14);  // <pssel> timeout prescaler to freq/2^16.
-    regs->cfg &= ~(1 << 10); // <reqwait> disable request wait.
-    regs->cfg |= ( 4 << 11); // <tosel> timeout period select to 63-64.
+    mxc_dma_adv_config_t adv_conf = { .burst_size = 1,
+                                      .prio = MXC_DMA_PRIO_HIGH,
+                                      .pssel = MXC_DMA_PRESCALE_DIV16M,
+                                      .tosel = MXC_DMA_TIMEOUT_4_CLK,
+                                      .reqwait_en = 0,
+                                      .ch = rxChannel };
+    MXC_DMA_AdvConfigChannel(adv_conf);
 
     NVIC_EnableIRQ(MXC_DMA_CH_GET_IRQ(rxChannel));
     MXC_NVIC_SetVector(MXC_DMA_CH_GET_IRQ(rxChannel), DMA0_TestIRQHandler);
 
     // Enable DMA channel interrupt
-    dma_reg->cn |= (1 << 0); // use channel 0.
-
-    regs->cfg |= (1 << 0); // <chen> Start channel
+    dma_reg->cn |= (1 << rxChannel);
     
-    regs->cfg |= (1 << 30); // <chdien> Enable CH interrupt.
-    regs->cfg |= (1 << 31); // <ctzien> Enable CH count zero interrupt.
-
+    MXC_DMA_Start(rxChannel);
+    MXC_DMA_ChannelEnableInt(rxChannel, (MXC_F_DMA_CFG_CTZIEN | MXC_F_DMA_CFG_CHDIEN));
+    
     return 0;
+}
+
+static int MXC_UART_DMA_Config(void){
+    int result = 0;
+
+    MXC_UART_Init(RX_UART, UART_BAUD, MAP_A);
+
+
+        
+
+
+    return result;
 }
 
 int MXC_UART_TransactionRXTimeout(mxc_uart_req_timeout_t *req)
