@@ -40,412 +40,168 @@
 #include "nvic_table.h"
 #include "led.h"
 
-/***** Definitions *****/
-// #define AUTOHANDLERS
-
 #define UART_BAUD 115200
-#define BUFF_SIZE 512
+#define TEST_UART MXC_UART0
 
-#define RX_UART MXC_UART1
-#define TX_UART MXC_UART2
+volatile int rxChannel = -1;
+volatile int txChannel = -1;
+volatile int TxFlag = 0;
+volatile int RxFlag = 0;
+volatile int buttonPressed = 0;
 
-#define DMA MXC_DMA0
-
-/***** Globals *****/
-volatile int READ_FLAG;
-volatile int WRITE_FLAG;
-volatile int buttonPressed;
-static mxc_uart_req_t read_req;
-static mxc_uart_req_t write_req;
-
-#ifndef BOARD_FTHR2
-#warning "This example has been written for the MAX32665 FTHR2 board."
-#endif
-
-/***** Functions *****/
-#ifndef AUTOHANDLERS
-void DMA_RX_Handler(void)
-{
-    MXC_DMA_Handler(DMA);
-}
-
-void DMA_TX_Handler(void)
-{
-    MXC_DMA_Handler(DMA);
-}
-#endif
-
-void readCallback(mxc_uart_req_t *req, int error)
-{
-    READ_FLAG = error;
-}
-
-void writeCallback(mxc_uart_req_t *req, int error)
-{
-    WRITE_FLAG = error;
-}
-
-void buttonHandler(void)
-{
+void buttonHandler(void){
     buttonPressed = 1;
 }
 
-#ifdef AUTOHANDLERS
-int exampleDMAAutoHandlers(void)
-{
-    int error = 0;
-
-    // Auto DMA handlers will automatically initialize DMA, acquire & assign channels,
-    // and guarantee that each transaction's callback function is executed when
-    // the transaction is complete.
-    MXC_UART_SetAutoDMAHandlers(RX_UART, true);
-    MXC_UART_SetAutoDMAHandlers(TX_UART, true);
-
-    // "READ_FLAG" is set in the read transaction's callback.  It will be set to 0 when
-    // the read request completes successfully.  We use it to wait for the DMA transaction
-    // to complete, since the DMA APIs are asynchronous (non-blocking)
-    READ_FLAG = 1;
-
-    error = MXC_UART_TransactionDMA(&read_req, DMA);
-    if (error) {
-        printf("-->Error starting DMA read: %d\n", error);
-        printf("-->Example Failed\n");
-        return error;
+void DMA_TxChIRQHandler(void){
+    int flags = MXC_DMA_ChannelGetFlags(txChannel);
+    if(E_BAD_PARAM == flags){
+        MXC_DMA_ChannelClearFlags(txChannel, 0xff);
     }
 
-    error = MXC_UART_TransactionDMA(&write_req, DMA);
-    if (error) {
-        printf("-->Error starting DMA write: %d\n", error);
-        printf("-->Example Failed\n");
-        return error;
+    // Count to Zero interrupt.
+    if(flags & MXC_F_DMA_ST_CTZ_ST){
+        /* @todo tx completed */
+        TxFlag = 1;
     }
 
-    while (READ_FLAG) {}
-
-    printf("-->Transaction completed\n");
-    return READ_FLAG;
-}
-#else
-int exampleDMAManualHandlers(void)
-{
-    int error = 0;
-    // Manally initialize DMA
-    MXC_DMA_Init(DMA);
-
-    // Manually acquire a channel for the read request and assign it to the drivers.
-    int rx_channel = MXC_DMA_AcquireChannel(DMA);
-    if (rx_channel >= 0) {
-        printf("Acquired DMA channel %i for RX transaction\n", rx_channel);
-    } else {
-        printf("Failed to acquire RX DMA channel with error %i\n", rx_channel);
-        return rx_channel;
-    }
-    MXC_UART_SetRXDMAChannel(RX_UART, rx_channel);
-
-    // Additionally, assign the NVIC IRQ to a function that calls "MXC_DMA_Handler()".
-    // This is required for any assigned callbacks to work.
-    NVIC_EnableIRQ(MXC_DMA_CH_GET_IRQ(rx_channel));
-    MXC_NVIC_SetVector(MXC_DMA_CH_GET_IRQ(rx_channel), DMA_RX_Handler);
-
-    // Do the same for the write request.
-    int tx_channel = MXC_DMA_AcquireChannel(DMA);
-    if (tx_channel >= 0) {
-        printf("Acquired DMA channel %i for RX transaction\n", tx_channel);
-    } else {
-        printf("Failed to acquire RX DMA channel with error %i\n", tx_channel);
-        return tx_channel;
-    }
-    MXC_UART_SetTXDMAChannel(TX_UART, tx_channel);
-    NVIC_EnableIRQ(MXC_DMA_CH_GET_IRQ(tx_channel));
-    MXC_NVIC_SetVector(MXC_DMA_CH_GET_IRQ(tx_channel), DMA_TX_Handler);
-
-    // Initialize flags.  We will use these to monitor when the read/write requests
-    // have completed, since the DMA APIs are asynchronous.
-    WRITE_FLAG = 1;
-    READ_FLAG = 1;
-
-    error = MXC_UART_TransactionDMA(&read_req, DMA);
-    if (error) {
-        printf("-->Error starting DMA read: %d\n", error);
-        printf("-->Example Failed\n");
-        return error;
+    // Timeout interrupt
+    if(flags & MXC_F_DMA_ST_TO_ST){
+        printf("Tx timeout\r\n");
     }
 
-    error = MXC_UART_TransactionDMA(&write_req, DMA);
-    if (error) {
-        printf("-->Error starting DMA write: %d\n", error);
-        printf("-->Example Failed\n");
-        return error;
-    }
-
-    while (WRITE_FLAG) {}
-    while (READ_FLAG) {}
-
-    printf("-->Transaction completed\n");
-    return WRITE_FLAG;
-}
-#endif // AUTOHANDLERS
-
-typedef void (*mxc_uart_req_timeout_cb_t)(void *req, int result);
-
-typedef struct {
-    mxc_uart_regs_t *uart;
-    uint8_t *rxData;
-    uint32_t rxLen;
-    volatile uint32_t rxCnt;
-    int timeout;
-    mxc_dma_regs_t *dma;
-} mxc_uart_req_timeout_t;
-
-static int dma_channel_timer_count = 0;
-void rxCallbackHandler(int par1, int par2) {
-    dma_channel_timer_count++;
-    printf("%d\r\n", dma_channel_timer_count);
+    MXC_DMA_ChannelClearFlags(txChannel, flags);
 }
 
-/**
- * @brief This macro is defined for initialization of an object to configure uart
- * transaction object with required parameters.
- *
- */
-#define UartTimeoutTransaction_req(req, par_uart, par_rxData, par_dma, par_timeout) \
-    mxc_uart_req_timeout_t req = {  .uart = par_uart,                     \
-                                    .rxData = par_rxData,                 \
-                                    .rxLen = par_rxLen,                   \
-                                    .rxCount = 0,                         \
-                                    .timeout = par_timeout,               \
-                                    .dma = par_dma };
+void DMA_RxChIRQHandler(void){
+    int flags = MXC_DMA_ChannelGetFlags(rxChannel);
+    if(E_BAD_PARAM == flags){
+        MXC_DMA_ChannelClearFlags(rxChannel, 0xff);
+    }
 
-volatile int rxChannel = 0;
-void DMA0_TestIRQHandler(void){
-    uint32_t flags = MXC_DMA_ChannelGetFlags(rxChannel);
-    if((flags & (1 << 2))){
-        // ctz interrupt
-        // @todo stop the transaction. Channel will be disabled.
-    }else if((flags & ( 1<< 6))){
-        // check if it is timeout interrupt.
-        printf("timeo\r\n");
+    // Count to Zero interrupt
+    if(flags & MXC_F_DMA_ST_CTZ_ST){
+        // @todo stop the transaction. rxChannel will be disabled.
+        RxFlag = 1;
+    }
+    // Timeout interrupt.
+    if(flags & MXC_F_DMA_ST_TO_ST){
+        printf("Rx timeout\r\n");
     }
     MXC_DMA_ChannelClearFlags(rxChannel, flags);
 }
 
-static int MXC_UART_TransactionDMA_Config(void){
-    static uint8_t destAddr[255];
-    mxc_dma_regs_t *dma_reg = (mxc_dma_regs_t *)MXC_DMA0;
-    MXC_DMA_Init(dma_reg);
-
-    int rxChannel = MXC_DMA_AcquireChannel(dma_reg);
-    if (0 > rxChannel) {
-        return -1;
-    }
-
-    mxc_dma_ch_regs_t *regs = MXC_DMA_GetCHRegs(rxChannel);
-    MXC_DMA_ChannelDisableInt(rxChannel, (MXC_F_DMA_CFG_CTZIEN | MXC_F_DMA_CFG_CHDIEN));
-    MXC_DMA_ChannelClearFlags(rxChannel, (MXC_F_DMA_ST_CTZ_ST | MXC_F_DMA_ST_RLD_ST |
+static int MXC_DMA_ConfChannelWithTimeout(mxc_dma_config_t conf,
+                                         mxc_dma_adv_config_t adv_conf,
+                                         mxc_dma_srcdst_t src_dst,
+                                         void (*irq_handler)(void))
+{
+    // mxc_dma_ch_regs_t *regs = MXC_DMA_GetCHRegs(conf.ch);
+    MXC_DMA_ChannelDisableInt(conf.ch, (MXC_F_DMA_CFG_CTZIEN | MXC_F_DMA_CFG_CHDIEN));
+    MXC_DMA_ChannelClearFlags(conf.ch, (MXC_F_DMA_ST_CTZ_ST | MXC_F_DMA_ST_RLD_ST |
                                           MXC_F_DMA_ST_BUS_ERR | MXC_F_DMA_ST_TO_ST));
-
-    mxc_dma_config_t conf = { .ch = rxChannel,
-                              .dstinc_en = 1,
-                              .srcinc_en = 0,
-                              .dstwd = MXC_DMA_WIDTH_BYTE,
-                              .srcwd = MXC_DMA_WIDTH_BYTE,
-                              .reqsel = MXC_DMA_REQUEST_UART0RX };
-
-    regs->dst = (uint32_t)destAddr;
-    regs->cnt = sizeof(destAddr);
-    mxc_dma_srcdst_t src_dst = {.ch = rxChannel, .dest = destAddr, .len = sizeof(destAddr), .source = NULL};
     MXC_DMA_ConfigChannel(conf, src_dst);
 
-    /* Configuration for timeout interrupt 9.7 */
-    mxc_dma_adv_config_t adv_conf = { .burst_size = 1,
-                                      .prio = MXC_DMA_PRIO_HIGH,
-                                      .pssel = MXC_DMA_PRESCALE_DIV16M,
-                                      .tosel = MXC_DMA_TIMEOUT_4_CLK,
-                                      .reqwait_en = 0,
-                                      .ch = rxChannel };
     MXC_DMA_AdvConfigChannel(adv_conf);
 
-    NVIC_EnableIRQ(MXC_DMA_CH_GET_IRQ(rxChannel));
-    MXC_NVIC_SetVector(MXC_DMA_CH_GET_IRQ(rxChannel), DMA0_TestIRQHandler);
+    NVIC_EnableIRQ(MXC_DMA_CH_GET_IRQ(conf.ch));
+    MXC_NVIC_SetVector(MXC_DMA_CH_GET_IRQ(conf.ch), irq_handler);
 
-    // Enable DMA channel interrupt
-    dma_reg->cn |= (1 << rxChannel);
-    
-    MXC_DMA_Start(rxChannel);
-    MXC_DMA_ChannelEnableInt(rxChannel, (MXC_F_DMA_CFG_CTZIEN | MXC_F_DMA_CFG_CHDIEN));
-    
+    MXC_DMA_EnableInt(conf.ch);
+
+    MXC_DMA_Start(conf.ch);
+    MXC_DMA_ChannelEnableInt(conf.ch, (MXC_F_DMA_CFG_CTZIEN | MXC_F_DMA_CFG_CHDIEN));
+
     return 0;
 }
 
-static int MXC_UART_DMA_Config(void){
-    int result = 0;
-
-    MXC_UART_Init(RX_UART, UART_BAUD, MAP_A);
-
-
-        
-
-
-    return result;
-}
-
-int MXC_UART_TransactionRXTimeout(mxc_uart_req_timeout_t *req)
-{
-    // int error = E_NO_ERROR;
-
-    // // 0-> Check input parameters.
-    // if (NULL == req->uart || req->rxData == NULL) {
-    //     return E_BAD_PARAM;
-    // }
-
-    // // Init dma peripheral.
-    // MXC_DMA_Init(req->dma);
-
-    // // 1-> Get channel.
-    // int rxChannel = MXC_DMA_AcquireChannel(req->dma);
-    // if (0 > rxChannel) {
-    //     return -1;
-    // }
-
-    // MXC_UART_SetRXDMAChannel(req->uart, rxChannel);
-    // MXC_DMA_SetCallback(rxChannel, rxCallbackHandler);
-
-    // // 2-> Enable interrupt for channel.
-    // NVIC_EnableIRQ(MXC_DMA_CH_GET_IRQ(rxChannel));
-    // MXC_NVIC_SetVector(MXC_DMA_CH_GET_IRQ(rxChannel), DMA_RX_Handler);
-    // MXC_DMA_ChannelEnableInt(rxChannel, 1);
-    // MXC_DMA_EnableInt(rxChannel);
-
-    // // reqwait = 1. So, timeout timer will start from the first dma transaction.
-    // mxc_dma_adv_config_t dma_timeo_cfg = { .pssel = 0x0 /* 2^24 prescaler */,
-    //                                        .burst_size = 1,
-    //                                        .ch = rxChannel,
-    //                                        .reqwait_en = 0,
-    //                                        .prio = MXC_DMA_PRIO_HIGH,
-    //                                        .tosel = MXC_DMA_TIMEOUT_512_CLK };
-
-    // MXC_DMA_AdvConfigChannel(dma_timeo_cfg);
-
-    // mxc_uart_req_t uart_req = {0};
-    
-    // uart_req.rxCnt = req->rxCnt;
-    // uart_req.rxData = req->rxData;
-    // uart_req.rxLen = req->rxLen;
-
-    // uart_req.txData = NULL;
-    // uart_req.txCnt = 0;
-    // uart_req.txLen = 0;
-
-    // uart_req.uart = req->uart;
-
-    // /**
-    //  * @brief Implementation of the UART transaction initilization
-    //  */
-
-    // MXC_UART_DisableInt(req->uart, 0xFFFFFFFF);
-    // MXC_UART_ClearFlags(req->uart, 0xFFFFFFFF);
-
-    // (req->uart)->dma |= (1 << 16); // Set RX DMA threshold to 1 byte
-
-    
-    // // 3-> Design a handler function which will
-    // //     continue to read until we reach rxLen or timeout.
-    // // 4-> Configure uart parameters to start transaction
-    // // 5-> Enable DMA timeout interrupt.
-    return 0;
-}
+#define SRC_LEN 100
+#define DEST_LEN 255
+static uint8_t destAddr[DEST_LEN] = {0};
+static uint8_t srcAddr[SRC_LEN] = {0};
 
 /******************************************************************************/
 int main(void)
 {
-    int error, i, fail = 0;
-
-    uint8_t TxData[BUFF_SIZE];
-    uint8_t RxData[BUFF_SIZE];
-
     printf("\n\n**************** UART Example ******************\n");
-    printf("This example sends data from one UART to another\n");
-    printf("\nConnect P0.20 (RX of UART1) and P0.1 (TX of UART2).\n\n");
-    printf("To indicate a successful UART transfer, LED1 will illuminate.\n");
     printf("\nPush SW2 to continue\n");
 
     buttonPressed = 0;
     PB_RegisterCallback(0, (pb_callback)buttonHandler);
     while (!buttonPressed) {}
 
-    MXC_UART_TransactionDMA_Config();
+    memset(srcAddr, 0xfb, SRC_LEN);
+
+
+    mxc_dma_regs_t *const operating_dma = MXC_DMA0;
+    MXC_DMA_Init(operating_dma);
+
+    /** @brief RX channel configurations */
+    rxChannel = MXC_DMA_AcquireChannel(operating_dma);
+    if (0 > rxChannel) {
+        return -1;
+    }
+    mxc_dma_srcdst_t rxSrcdst = {.len = DEST_LEN, .dest = destAddr, .source = NULL, .ch = rxChannel};
+    mxc_dma_config_t confRx = { .ch = rxChannel,
+                                .dstinc_en = 1,
+                                .srcinc_en = 0,
+                                .dstwd = MXC_DMA_WIDTH_BYTE,
+                                .srcwd = MXC_DMA_WIDTH_BYTE,
+                                .reqsel = MXC_DMA_REQUEST_UART0RX};
+    /**
+     * rx timeout 
+     */
+    mxc_dma_adv_config_t rx_adv_conf = { .burst_size = 1,
+                                         .prio = MXC_DMA_PRIO_HIGH,
+                                         .pssel = MXC_DMA_PRESCALE_DIV16M,
+                                         .tosel = MXC_DMA_TIMEOUT_4_CLK,
+                                         .reqwait_en = 0,
+                                         .ch = rxChannel};
+
+    
+    /** @brief TX channel configurations */
+    txChannel = MXC_DMA_AcquireChannel(operating_dma);
+    if (0 > rxChannel) {
+        return -1;
+    }
+    mxc_dma_srcdst_t txSrcdst = {.len = SRC_LEN, .dest = NULL, .source = srcAddr, .ch = txChannel};
+    mxc_dma_config_t confTx = { .ch = txChannel,
+                                .dstinc_en = 0,
+                                .srcinc_en = 1,
+                                .dstwd = MXC_DMA_WIDTH_BYTE,
+                                .srcwd = MXC_DMA_WIDTH_BYTE,
+                                .reqsel = MXC_DMA_REQUEST_UART0TX};
+    mxc_dma_adv_config_t tx_adv_conf = { .burst_size = 1,
+                                         .prio = MXC_DMA_PRIO_HIGH,
+                                         .pssel = MXC_DMA_PRESCALE_DIV16M,
+                                         .tosel = MXC_DMA_TIMEOUT_32_CLK,
+                                         .reqwait_en = 0,
+                                         .ch = txChannel};                                     
+
+    // Configuration of DMA channels to be used for UART TX and RX
+    MXC_DMA_ConfChannelWithTimeout(confRx, rx_adv_conf, rxSrcdst, DMA_RxChIRQHandler);
+    MXC_DMA_ConfChannelWithTimeout(confTx, tx_adv_conf, txSrcdst, DMA_TxChIRQHandler);
+
+    // Initialization of UART0 and its pins.
+    MXC_UART_Init(TEST_UART, UART_BAUD, MAP_A);
+
+    // UART peripheral configurations for dma usage in uart transaction.
+    MXC_UART_SetRXDMAChannel(TEST_UART, rxChannel);
+    TEST_UART->dma |= ( 1 << MXC_F_UART_DMA_RXDMA_LEVEL_POS);// Setting dma RX threshold 
+    
+    MXC_UART_SetTXDMAChannel(TEST_UART, txChannel);
+    TEST_UART->dma |= ( 2 << MXC_F_UART_DMA_TXDMA_LEVEL_POS); // Setting dma TX threshold 
+
+    TEST_UART->dma |= MXC_F_UART_DMA_RXDMA_EN;  // Enabling uart dma for rx. Data receive starts from here.
+    TEST_UART->dma |= MXC_F_UART_DMA_TXDMA_EN;  // Enabling uart dma for tx. Data transmission starts after this line.
+
     printf("Dma config completed\r\n");
+    while(!TxFlag){}
+    printf("TX completed\r\n");
+    while(!RxFlag){}
+    printf("Rx Completed\r\n");
+    printf("Transfer Completed\r\n");
     while(1){}
 
-    printf("\nUART Baud \t: %d Hz\n", UART_BAUD);
-    printf("Test Length \t: %d bytes\n\n", BUFF_SIZE);
-
-    // Initialize the data buffers
-    for (i = 0; i < BUFF_SIZE; i++) {
-        TxData[i] = i;
-    }
-    memset(RxData, 0x0, BUFF_SIZE);
-
-    // Initialize the UART
-    error = MXC_UART_Init(TX_UART, UART_BAUD, MAP_A);
-    if (error < E_NO_ERROR) {
-        printf("-->Error initializing UART: %d\n", error);
-        printf("-->Example Failed\n");
-        return error;
-    }
-
-    error = MXC_UART_Init(RX_UART, UART_BAUD, MAP_A);
-    if (error < E_NO_ERROR) {
-        printf("-->Error initializing UART: %d\n", error);
-        printf("-->Example Failed\n");
-        return error;
-    }
-
-    // Setup request structs describing the transactions.
-    // Request structs are placed in the global scope so they
-    // don't go out of context.  This can happen when a req struct
-    // is declared inside a function and the function completes.
-    // The memory would be freed, invalidating the UART driver's
-    // pointers to it.
-    read_req.uart = RX_UART;
-    read_req.rxData = RxData;
-    read_req.rxLen = BUFF_SIZE;
-    read_req.txLen = 0;
-    read_req.callback = readCallback;
-
-    write_req.uart = TX_UART;
-    write_req.txData = TxData;
-    write_req.txLen = BUFF_SIZE;
-    write_req.rxLen = 0;
-    write_req.callback = writeCallback;
-
-    printf("-->UART Initialized\n\n");
-
-#ifdef AUTOHANDLERS
-    error = exampleDMAAutoHandlers();
-#else
-    error = exampleDMAManualHandlers();
-#endif
-
-    if (READ_FLAG != E_NO_ERROR) {
-        printf("-->Error with read callback; %d\n", READ_FLAG);
-        fail++;
-    }
-
-    if ((error = memcmp(RxData, TxData, BUFF_SIZE)) != 0) {
-        printf("-->Error verifying Data: %d\n", error);
-        fail++;
-    } else {
-        printf("-->Data verified\n");
-    }
-
-    if (fail != 0) {
-        printf("\n-->Example Failed\n");
-        LED_On(0); // indicates FAIL
-        return E_FAIL;
-    }
-
-    LED_On(1); // indicates SUCCESS
-    printf("\n-->Example Succeeded\n");
     return E_NO_ERROR;
 }
