@@ -15,7 +15,7 @@ A little fail-safe filesystem designed for microcontrollers.
 failures. All file operations have strong copy-on-write guarantees and if
 power is lost the filesystem will fall back to the last known good state.
 
-**Dynamic wear leveling** - littlefs is designed with flash in mind, and
+**Dynamic wear leveling** - littlefs is designed with flash in mind, and<!--  -->
 provides wear leveling over dynamic blocks. Additionally, littlefs can
 detect bad blocks and work around them.
 
