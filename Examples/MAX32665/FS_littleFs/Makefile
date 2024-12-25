@@ -367,7 +367,6 @@ ifeq "$(MAKECMDGOALS)" ""
 MAKECMDGOALS:=$(.DEFAULT_GOAL)
 endif
 
-
 all:
 # 	Extend the functionality of the "all" recipe here
 	$(PREFIX)-size --format=berkeley $(BUILD_DIR)/$(PROJECT).elf

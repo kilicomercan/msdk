@@ -74,6 +74,7 @@
         "${config:MAXIM_PATH}/Libraries/MiscDrivers/ADC",
         "${config:MAXIM_PATH}/Libraries/MiscDrivers/EEPROM",
         "${config:MAXIM_PATH}/Libraries/MiscDrivers/CODEC",
+        "${config:MAXIM_PATH}/Libraries/MiscDrivers/ExtMemory",
         "${config:MAXIM_PATH}/Libraries/littleFs"
     ],
     "C_Cpp.default.defines": [
@@ -86,7 +87,16 @@
         "board.h": "c",
         "mxc_delay.h": "c",
         "lfs.h": "c",
-        "lfs_util.h": "c"
-    }
+        "lfs_util.h": "c",
+        "spixf.h": "c",
+        "led.h": "c",
+        "ext_flash.h": "c",
+        "spixfc_regs.h": "c",
+        "spixfc_fifo_regs.h": "c",
+        "mxc_sys.h": "c",
+        "spixf_reva.h": "c",
+        "max32665.h": "c"
+    },
+    "cfs.configureWorkspace": "No"
 }
 

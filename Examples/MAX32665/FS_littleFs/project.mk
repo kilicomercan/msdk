@@ -35,10 +35,17 @@ PROJ_CFLAGS+=-mno-unaligned-access
 
 DEBUG=0
 
-VPATH += $(MAXIM_PATH)/Libraries/littleFS
-IPATH += $(MAXIM_PATH)/Libraries/littleFS
+PROJ_CFLAGS += $(FLASH_DEVICE_TYPE)
+
+FLASH_DEVICE_TYPE = -DEXT_FLASH_W25
+FLASH_DEVICE_SRC_FILE = $(MAXIM_PATH)/Libraries/MiscDrivers/ExtMemory/w25.c
+
+SRCS += $(FLASH_DEVICE_SRC_FILE)
+IPATH +=$(MAXIM_PATH)/Libraries/MiscDrivers/ExtMemory
 
 # - LIB_LITTLEFS : Include the "little file system" (littleFS) library
+VPATH += $(MAXIM_PATH)/Libraries/littleFS
+IPATH += $(MAXIM_PATH)/Libraries/littleFS
 libs += LIB_LITTLEFS
 
 override BOARD = FTHR
