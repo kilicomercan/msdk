@@ -79,6 +79,9 @@
     ],
     "C_Cpp.default.forcedInclude": [
         "${workspaceFolder}/build/project_defines.h"
-    ]
+    ],
+    "files.associations": {
+        "ext_flash.h": "c"
+    }
 }
 
