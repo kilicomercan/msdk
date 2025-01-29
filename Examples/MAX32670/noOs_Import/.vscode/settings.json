@@ -57,11 +57,13 @@
         "${config:MAXIM_PATH}/Libraries/MiscDrivers/PushButton",
         "${config:MAXIM_PATH}/Libraries/MiscDrivers/Touchscreen",
 
+        // noOS related source file inclusions.
         "${config:MAXIM_PATH}/Libraries/noOS/include",
         "${config:MAXIM_PATH}/Libraries/noOS/src",
         "${config:MAXIM_PATH}/Libraries/noOS/src/api",
         "${config:MAXIM_PATH}/Libraries/MiscDrivers/no_os/${config:ADI_Device_Type}/${config:ADI_Device_Name}",
-
+        "${config:MAXIM_PATH}/Libraries/noOS/maxim/${config:target}",
+        "${config:MAXIM_PATH}/Libraries/noOS/maxim/common"
     ],
     "C_Cpp.default.browse.path": [
         "${workspaceFolder}",
@@ -77,11 +79,13 @@
         "${config:MAXIM_PATH}/Libraries/MiscDrivers/Touchscreen",
         "${config:MAXIM_PATH}/Libraries/MiscDrivers",
 
+        // noOS related path inclusions.
         "${config:MAXIM_PATH}/Libraries/noOS/include",
         "${config:MAXIM_PATH}/Libraries/noOS/src",
         "${config:MAXIM_PATH}/Libraries/noOS/src/api",
         "${config:MAXIM_PATH}/Libraries/MiscDrivers/no_os/${config:ADI_Device_Type}/${config:ADI_Device_Name}",
-        
+        "${config:MAXIM_PATH}/Libraries/noOS/maxim/${config:target}",
+        "${config:MAXIM_PATH}/Libraries/noOS/maxim/common"
     ],
     "C_Cpp.default.defines": [
         
@@ -92,7 +96,8 @@
     "files.associations": {
         "adxl345.h": "c",
         "spi.h": "c",
-        "ad74416h.h": "c"
+        "ad74416h.h": "c",
+        "maxim_spi.h": "c"
     }
 }
 

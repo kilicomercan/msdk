@@ -29,7 +29,6 @@
 # **********************************************************
 
 # Add your config here!
-
 dev_type = adc-dac
 dev_name = ad74416h
 noOs_src_api_dir = $(MAXIM_PATH)/Libraries/noOS/src
@@ -37,15 +36,16 @@ noOs_src_api_dir = $(MAXIM_PATH)/Libraries/noOS/src
 # Add header libraries
 IPATH += $(MAXIM_PATH)/Libraries/noOS/include
 IPATH += $(MAXIM_PATH)/Libraries/noOS/maxim/$(TARGET)
+IPATH += $(MAXIM_PATH)/Libraries/noOS/maxim/common
 
+# Add device driver files to compilation.
 IPATH += $(MAXIM_PATH)/Libraries/MiscDrivers/no_os/$(dev_type)/$(dev_name)
 VPATH += $(MAXIM_PATH)/Libraries/MiscDrivers/no_os/$(dev_type)/$(dev_name)
 
-SRCS += $(noOs_src_api_dir)/no_os_alloc.c
-SRCS += $(noOs_src_api_dir)/api/no_os_spi.c
-SRCS += $(noOs_src_api_dir)/api/no_os_gpio.c
+# Adding all no_os wrapper functions to compilation process.
+SRCS += $(wildcard $(noOs_src_api_dir)/*.c)
+SRCS += $(wildcard $(noOs_src_api_dir)/api/*.c)
 
-# We will use spi interface to control the accelerometer.
-# So, we are adding maxim_api.c file to the project for compilation.
-SRCS += $(MAXIM_PATH)/Libraries/noOS/maxim/$(TARGET)/maxim_spi.c
-SRCS += $(MAXIM_PATH)/Libraries/noOS/maxim/$(TARGET)/maxim_gpio.c
+# Adding maxim_xxx apis to compilation.
+SRCS += $(wildcard $(MAXIM_PATH)/Libraries/noOS/maxim/$(TARGET)/*.c)
+SRC += $(MAXIM_PATH)/Libraries/noOS/maxim/common/maxim_dma.c
