@@ -32,7 +32,6 @@
 #include "board.h"
 #include "mxc_delay.h"
 #include "ad74416h.h"
-#include "maxim_spi.h"
 
 // *****************************************************************************
 int main(void)
