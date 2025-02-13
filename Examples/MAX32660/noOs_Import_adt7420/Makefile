@@ -47,9 +47,9 @@
 
 ifeq "$(TARGET)" ""
 # Default target microcontroller
-TARGET := MAX32670
-TARGET_UC := MAX32670
-TARGET_LC := max32670
+TARGET := MAX32660
+TARGET_UC := MAX32660
+TARGET_LC := max32660
 else
 # "TARGET" has been overridden in the environment or on the command-line.
 # We need to calculate an upper and lowercase version of the part number,

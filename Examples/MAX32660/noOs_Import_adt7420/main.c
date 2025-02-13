@@ -45,7 +45,7 @@ int main(void)
             .platform_ops = &max_i2c_ops,     // Platform-specific operations (if any)
             .extra = MXC_GPIO_VSSEL_VDDIOH,
         },
-        .resolution_setting = 1,      // Use 16-bit resolution (1 for 16-bit, 0 for 13-bit)
+    .resolution_setting = 1,      // Use 16-bit resolution (1 for 16-bit, 0 for 13-bit)
     };
 
     struct adt7420_dev *adt7420_device;
